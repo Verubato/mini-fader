@@ -1,0 +1,12 @@
+## Interface: 120001, 120000, 110207
+## Title: MiniFader
+## Notes: Fades out certain frames including bags, micro menu, and quests tracker.
+## Author: Verz
+## Version: 1.0.0
+## SavedVariables: MiniFaderDB
+## IconTexture: Interface\AddOns\MiniFader\icon.blp
+## X-Curse-Project-ID: 1420477
+
+Fader.lua
+Config.lua
+MiniFader.lua
