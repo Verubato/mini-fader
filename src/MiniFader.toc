@@ -4,7 +4,7 @@
 ## Author: Verz
 ## Version: 1.0.0
 ## SavedVariables: MiniFaderDB
-## IconTexture: Interface\AddOns\MiniFader\icon.blp
+## IconTexture: Interface\AddOns\MiniFader\Icon.blp
 ## X-Curse-Project-ID: 1420477
 
 Fader.lua
