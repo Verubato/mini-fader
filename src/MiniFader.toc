@@ -2,7 +2,7 @@
 ## Title: MiniFader
 ## Notes: Fades out certain frames including bags, micro menu, and quests tracker.
 ## Author: Verz
-## Version: 1.0.0
+## Version: 1.1.0
 ## SavedVariables: MiniFaderDB
 ## IconTexture: Interface\AddOns\MiniFader\Icon.blp
 ## X-Curse-Project-ID: 1420477
