@@ -14,6 +14,7 @@ local dbDefaults = {
 		CompactRaidFrameManager = true,
 		StatusTrackingBarManager = true,
 		CollapseAndExpandButton = false,
+		Chat = false,
 	},
 }
 local M = {}
@@ -135,6 +136,7 @@ function M:Init()
 			OnChanged = function(enabled)
 				db.Frames.ObjectiveTrackerFrame = enabled
 				fader:Refresh()
+				addon:Refresh()
 			end,
 		},
 		{
@@ -146,6 +148,7 @@ function M:Init()
 			OnChanged = function(enabled)
 				db.Frames.BagsBar = enabled
 				fader:Refresh()
+				addon:Refresh()
 			end,
 		},
 		{
@@ -157,6 +160,19 @@ function M:Init()
 			OnChanged = function(enabled)
 				db.Frames.MicroMenu = enabled
 				fader:Refresh()
+				addon:Refresh()
+			end,
+		},
+		{
+			Name = "Chat",
+			Tooltip = "Fade the chat tabs.",
+			Enabled = function()
+				return db.Frames.Chat
+			end,
+			OnChanged = function(enabled)
+				db.Frames.Chat = enabled
+				fader:Refresh()
+				addon:Refresh()
 			end,
 		},
 		{
@@ -168,6 +184,7 @@ function M:Init()
 			OnChanged = function(enabled)
 				db.Frames.StatusTrackingBarManager = enabled
 				fader:Refresh()
+				addon:Refresh()
 			end,
 		},
 		{
@@ -179,6 +196,7 @@ function M:Init()
 			OnChanged = function(enabled)
 				db.Frames.CompactRaidFrameManager = enabled
 				fader:Refresh()
+				addon:Refresh()
 			end,
 		},
 		{
@@ -190,6 +208,7 @@ function M:Init()
 			OnChanged = function(enabled)
 				db.Frames.CollapseAndExpandButton = enabled
 				fader:Refresh()
+				addon:Refresh()
 			end,
 		},
 	}
