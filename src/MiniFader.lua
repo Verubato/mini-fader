@@ -79,9 +79,17 @@ local function RegisterQuests()
 				return false
 			end
 
-			-- fade when inside an not in an instance, or in an arena
 			local inInstance, instanceType = IsInInstance()
-			return not inInstance or instanceType == "arena"
+
+			if not inInstance then
+				return true
+			end
+
+			if instanceType == "pvp" or instanceType == "arena" then
+				return db.Options.ObjectiveTracker.FadeWhen.InPvP
+			end
+
+			return db.Options.ObjectiveTracker.FadeWhen.InPvE
 		end,
 		Events = { "PLAYER_ENTERING_WORLD" },
 	})
