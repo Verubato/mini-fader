@@ -1,7 +1,9 @@
 local addonName, addon = ...
-local verticalSpacing = 20
+---@type MiniFramework
+local mini = addon.Framework
 local checkboxesPerLine = 4
 local checkboxWidth = 150
+local verticalSpacing = mini.VerticalSpacing
 local fader = addon.Fader
 ---@type Config
 local db
@@ -20,73 +22,33 @@ local dbDefaults = {
 local M = {}
 addon.Config = M
 
-local function CopyTable(src, dst)
-	if type(dst) ~= "table" then
-		dst = {}
-	end
-
-	for k, v in pairs(src) do
-		if type(v) == "table" then
-			dst[k] = CopyTable(v, dst[k])
-		elseif dst[k] == nil then
-			dst[k] = v
-		end
-	end
-
-	return dst
-end
-
-local function CreateSettingCheckbox(panel, setting)
-	local checkbox = CreateFrame("CheckButton", nil, panel, "UICheckButtonTemplate")
-	checkbox.Text:SetText(" " .. setting.Name)
-	checkbox.Text:SetFontObject("GameFontNormal")
-	checkbox:SetChecked(setting.Enabled())
-	checkbox:HookScript("OnClick", function()
-		setting.OnChanged(checkbox:GetChecked())
-	end)
-
-	checkbox:SetScript("OnEnter", function(self)
-		GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-		GameTooltip:SetText(setting.Name, 1, 0.82, 0)
-		GameTooltip:AddLine(setting.Tooltip, 1, 1, 1, true)
-		GameTooltip:Show()
-	end)
-
-	checkbox:SetScript("OnLeave", function()
-		GameTooltip:Hide()
-	end)
-
-	return checkbox
-end
-
-local function LayoutSettings(settings, panel, relativeTo, xOffset, yOffset)
+local function LayoutSettings(settings, relativeTo, xOffset, yOffset)
 	local x = xOffset
 	local y = yOffset
-	local lastCheckbox = nil
+	local bottomLeftCheckbox = nil
+	local isNewRow = true
 
 	for i, setting in ipairs(settings) do
-		local checkbox = CreateSettingCheckbox(panel, setting)
+		local checkbox = mini:Checkbox(setting)
 		checkbox:SetPoint("TOPLEFT", relativeTo, "TOPLEFT", x, y)
 
-		lastCheckbox = checkbox
+		if isNewRow then
+			bottomLeftCheckbox = checkbox
+		end
 
 		if i % checkboxesPerLine == 0 then
 			y = y - (verticalSpacing * 2)
 			x = xOffset
+
+			isNewRow = true
 		else
 			x = x + checkboxWidth
+
+			isNewRow = false
 		end
 	end
 
-	return lastCheckbox
-end
-
-function CanOpenOptionsDuringCombat()
-	if LE_EXPANSION_LEVEL_CURRENT == nil or LE_EXPANSION_MIDNIGHT == nil then
-		return true
-	end
-
-	return LE_EXPANSION_LEVEL_CURRENT < LE_EXPANSION_MIDNIGHT
+	return bottomLeftCheckbox
 end
 
 local function AddCategory(panel)
@@ -105,8 +67,7 @@ local function AddCategory(panel)
 end
 
 function M:Init()
-	MiniFaderDB = MiniFaderDB or {}
-	db = CopyTable(dbDefaults, MiniFaderDB)
+	db = mini:GetSavedVars(dbDefaults)
 
 	local panel = CreateFrame("Frame")
 	panel.name = addonName
@@ -126,86 +87,94 @@ function M:Init()
 	description:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -8)
 	description:SetText("Simplify your UI.")
 
+	---@type CheckboxOptions[]
 	local settings = {
 		{
-			Name = "Objective tracker",
+			Parent = panel,
+			LabelText = "Objective tracker",
 			Tooltip = "Fade the objective/quests tracker, but show it inside instances.",
-			Enabled = function()
+			GetValue = function()
 				return db.Frames.ObjectiveTrackerFrame
 			end,
-			OnChanged = function(enabled)
+			SetValue = function(enabled)
 				db.Frames.ObjectiveTrackerFrame = enabled
 				fader:Refresh()
 				addon:Refresh()
 			end,
 		},
 		{
-			Name = "Bags",
+			Parent = panel,
+			LabelText = "Bags",
 			Tooltip = "Fade the bags bar.",
-			Enabled = function()
+			GetValue = function()
 				return db.Frames.BagsBar
 			end,
-			OnChanged = function(enabled)
+			SetValue = function(enabled)
 				db.Frames.BagsBar = enabled
 				fader:Refresh()
 				addon:Refresh()
 			end,
 		},
 		{
-			Name = "Micro Menu",
+			Parent = panel,
+			LabelText = "Micro Menu",
 			Tooltip = "Fade the micro menu.",
-			Enabled = function()
+			GetValue = function()
 				return db.Frames.MicroMenu
 			end,
-			OnChanged = function(enabled)
+			SetValue = function(enabled)
 				db.Frames.MicroMenu = enabled
 				fader:Refresh()
 				addon:Refresh()
 			end,
 		},
 		{
-			Name = "Chat",
+			Parent = panel,
+			LabelText = "Chat",
 			Tooltip = "Fade the chat tabs.",
-			Enabled = function()
+			GetValue = function()
 				return db.Frames.Chat
 			end,
-			OnChanged = function(enabled)
+			SetValue = function(enabled)
 				db.Frames.Chat = enabled
 				fader:Refresh()
 				addon:Refresh()
 			end,
 		},
 		{
-			Name = "XP and Reputation",
+			Parent = panel,
+			LabelText = "XP and Reputation",
 			Tooltip = "Fade the XP and Reputation bars.",
-			Enabled = function()
+			GetValue = function()
 				return db.Frames.StatusTrackingBarManager
 			end,
-			OnChanged = function(enabled)
+			SetValue = function(enabled)
 				db.Frames.StatusTrackingBarManager = enabled
 				fader:Refresh()
 				addon:Refresh()
 			end,
 		},
 		{
-			Name = "Raid manager",
+			Parent = panel,
+			LabelText = "Raid manager",
 			Tooltip = "Fade the raid manager flyout (left of screen flyout menu).",
-			Enabled = function()
+			GetValue = function()
 				return db.Frames.CompactRaidFrameManager
 			end,
-			OnChanged = function(enabled)
+			SetValue = function(enabled)
 				db.Frames.CompactRaidFrameManager = enabled
 				fader:Refresh()
 				addon:Refresh()
 			end,
 		},
 		{
-			Name = "Buffs button",
+			Parent = panel,
+			LabelText = "Buffs button",
 			Tooltip = "Fade the collapse/expand buffs arrow button.",
-			Enabled = function()
+			GetValue = function()
 				return db.Frames.CollapseAndExpandButton
 			end,
-			OnChanged = function(enabled)
+			SetValue = function(enabled)
 				db.Frames.CollapseAndExpandButton = enabled
 				fader:Refresh()
 				addon:Refresh()
@@ -213,21 +182,10 @@ function M:Init()
 		},
 	}
 
-	LayoutSettings(settings, panel, description, 0, -verticalSpacing * 2)
+	LayoutSettings(settings, description, 0, -verticalSpacing * 2)
 
-	SLASH_MINIFADER1 = "/minifader"
-	SLASH_MINIFADER2 = "/mf"
-
-	SlashCmdList.MINIFADER = function()
-		if Settings then
-			if not InCombatLockdown() or CanOpenOptionsDuringCombat() then
-				Settings.OpenToCategory(category:GetID())
-			end
-		elseif InterfaceOptionsFrame_OpenToCategory then
-			-- workaround the classic bug where the first call opens the Game interface
-			-- and a second call is required
-			InterfaceOptionsFrame_OpenToCategory(panel)
-			InterfaceOptionsFrame_OpenToCategory(panel)
-		end
-	end
+	mini:RegisterSlashCommand(category, panel, {
+		"/minifader",
+		"/mf",
+	})
 end
