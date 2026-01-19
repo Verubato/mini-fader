@@ -18,6 +18,14 @@ local dbDefaults = {
 		CollapseAndExpandButton = false,
 		Chat = false,
 	},
+	Options = {
+		ObjectiveTracker = {
+			FadeWhen = {
+				InPvE = false,
+				InPvP = true,
+			},
+		},
+	},
 }
 local M = {}
 addon.Config = M
@@ -86,6 +94,15 @@ function M:Init()
 	local description = panel:CreateFontString(nil, "ARTWORK", "GameFontWhite")
 	description:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -8)
 	description:SetText("Simplify your UI.")
+
+	local mainDivider = mini:Divider({
+		Parent = panel,
+		Text = "Main",
+	})
+
+	mainDivider:SetPoint("LEFT", panel, "LEFT")
+	mainDivider:SetPoint("RIGHT", panel, "RIGHT")
+	mainDivider:SetPoint("TOP", description, "BOTTOM", 0, -verticalSpacing)
 
 	---@type CheckboxOptions[]
 	local settings = {
@@ -182,7 +199,47 @@ function M:Init()
 		},
 	}
 
-	LayoutSettings(settings, description, 0, -verticalSpacing * 2)
+	local anchor = LayoutSettings(settings, mainDivider, 0, -verticalSpacing * 2)
+	local objTrackerDivider = mini:Divider({
+		Parent = panel,
+		Text = "Objective Tracker Options",
+	})
+
+	objTrackerDivider:SetPoint("LEFT", panel, "LEFT")
+	objTrackerDivider:SetPoint("RIGHT", panel, "RIGHT")
+	objTrackerDivider:SetPoint("TOP", anchor, "BOTTOM", 0, -verticalSpacing)
+
+	---@type CheckboxOptions[]
+	local objTrackerSettings = {
+		{
+			Parent = panel,
+			LabelText = "Fade in PvP",
+			Tooltip = "Fade the objective/quests tracker in PvP instances.",
+			GetValue = function()
+				return db.Options.ObjectiveTracker.FadeWhen.InPvP
+			end,
+			SetValue = function(enabled)
+				db.Options.ObjectiveTracker.FadeWhen.InPvP = enabled
+				fader:Refresh()
+				addon:Refresh()
+			end,
+		},
+		{
+			Parent = panel,
+			LabelText = "Fade in PvE",
+			Tooltip = "Fade the objective/quests tracker in PvE instances.",
+			GetValue = function()
+				return db.Options.ObjectiveTracker.FadeWhen.InPvE
+			end,
+			SetValue = function(enabled)
+				db.Options.ObjectiveTracker.FadeWhen.InPvE = enabled
+				fader:Refresh()
+				addon:Refresh()
+			end,
+		},
+	}
+
+	LayoutSettings(objTrackerSettings, objTrackerDivider, 0, -verticalSpacing * 2)
 
 	mini:RegisterSlashCommand(category, panel, {
 		"/minifader",
