@@ -17,6 +17,7 @@ local dbDefaults = {
 		StatusTrackingBarManager = true,
 		CollapseAndExpandButton = false,
 		Chat = false,
+		DamageMeter = false,
 	},
 	Options = {
 		ObjectiveTracker = {
@@ -193,6 +194,19 @@ function M:Init()
 			end,
 			SetValue = function(enabled)
 				db.Frames.CollapseAndExpandButton = enabled
+				fader:Refresh()
+				addon:Refresh()
+			end,
+		},
+		{
+			Parent = panel,
+			LabelText = "Damage meter",
+			Tooltip = "Fade the Blizzard damage meter.",
+			GetValue = function()
+				return db.Frames.DamageMeter
+			end,
+			SetValue = function(enabled)
+				db.Frames.DamageMeter = enabled
 				fader:Refresh()
 				addon:Refresh()
 			end,
