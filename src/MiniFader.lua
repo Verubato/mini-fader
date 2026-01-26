@@ -126,6 +126,23 @@ local function RegisterXpAndRep()
 	})
 end
 
+local function RegisterDamagerMeter()
+	local window = 1
+	local frame = _G["DamageMeterSessionWindow" .. window]
+
+	while frame do
+		fader:RegisterFade({
+			Target = frame,
+			ShouldFade = function()
+				return db.Frames.DamageMeter and not IsInInstance()
+			end,
+		})
+
+		window = window + 1
+		frame = _G["DamageMeterSessionWindow" .. window]
+	end
+end
+
 local function ChatBackground(chatFrame, existingBg, alpha)
 	local bg = CreateFrame("Frame", nil, chatFrame)
 	bg:SetFrameLevel(math.max((chatFrame:GetFrameLevel() or 0) - 1, 0))
@@ -296,6 +313,7 @@ local function Init()
 	RegisterRaidFrameManager()
 	RegisterXpAndRep()
 	RefreshChat()
+	RegisterDamagerMeter()
 
 	-- most notably the chat background needs to be refreshed
 	fader:Refresh()
