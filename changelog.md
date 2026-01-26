@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.4.0
+
+Added Blizzard's damage meter.
+
 ## 1.3.0
 
 Added objective tracker instance filter options.
