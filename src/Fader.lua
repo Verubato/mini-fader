@@ -27,14 +27,14 @@ local function AnyHasFocus(mouseFrame)
 			return true
 		end
 
-		if next == mouseFrame then
-			return false
-		end
+		-- don't traverse above mouseFrame, but don't return early —
+		-- there may be other frames in the stack (from GetMouseFoci) still to check
+		if next ~= mouseFrame then
+			local parent = next:GetParent()
 
-		local parent = next:GetParent()
-
-		if parent and parent ~= UIParent then
-			table.insert(stack, parent)
+			if parent and parent ~= UIParent then
+				table.insert(stack, parent)
+			end
 		end
 
 		next = table.remove(stack)
@@ -48,13 +48,12 @@ local function StopAnimationPreserveAlpha(target, ag)
 		return
 	end
 
-	ag.VuiSuppressFinish = true
-
 	local alpha = target:GetAlpha()
+	ag.VuiSuppressFinish = true
 	ag:Stop()
+	-- intentionally NOT clearing VuiSuppressFinish here;
+	-- OnFinished clears it, keeping the flag set regardless of sync/async firing
 	target:SetAlpha(alpha)
-
-	ag.VuiSuppressFinish = false
 end
 
 local function ScheduleFadeOut(mouseFrame, target, force, timeUntilFadeOut)
@@ -68,15 +67,26 @@ local function ScheduleFadeOut(mouseFrame, target, force, timeUntilFadeOut)
 	local timeToWait = timeUntilFadeOut - (GetTime() - target.VuiLastLeft)
 
 	local function TryFadeOut()
+		-- if fade-in is still running, wait for it to finish before starting fade-out.
+		-- GetAlpha() returns the animated value during animation, so the alpha != 0 check
+		-- below would pass mid-fade-in, causing us to stop the fade-in prematurely.
+		if target.VuiFadeIn:IsPlaying() then
+			C_Timer.After(fadeInDuration, TryFadeOut)
+			return
+		end
+
+		-- guard against stale C_Timer.After retries firing too early: a later OnLeave may
+		-- have updated VuiLastLeft, so re-check that the full grace period has elapsed.
+		if GetTime() - target.VuiLastLeft < timeUntilFadeOut then
+			return
+		end
+
 		if
 			(not target.VuiShouldFade or target.VuiShouldFade())
 			and target:GetAlpha() ~= 0
 			and not AnyHasFocus(mouseFrame)
 			and not target.VuiFadeOut:IsPlaying()
 		then
-			-- if fade-in is still playing, stop it
-			StopAnimationPreserveAlpha(target, target.VuiFadeIn)
-
 			-- always fade out from current alpha
 			if target.VuiFadeOut and target.VuiFadeOut.Fade then
 				target.VuiFadeOut.Fade:SetFromAlpha(target:GetAlpha())
@@ -107,7 +117,6 @@ end
 
 local function OnEnter(mouseFrame, target, fadeToAlpha)
 	mouseFrame.VuiHasFocus = true
-	target.VuiLastEnter = GetTime()
 
 	if target.VuiFadeOutTimer then
 		target.VuiFadeOutTimer:Cancel()
@@ -118,6 +127,9 @@ local function OnEnter(mouseFrame, target, fadeToAlpha)
 	StopAnimationPreserveAlpha(target, target.VuiFadeOut)
 
 	if target:GetAlpha() ~= (fadeToAlpha or 1) and not target.VuiFadeIn:IsPlaying() then
+		if target.VuiFadeIn and target.VuiFadeIn.Fade then
+			target.VuiFadeIn.Fade:SetFromAlpha(target:GetAlpha())
+		end
 		target.VuiFadeIn:Play()
 	end
 end
@@ -157,8 +169,6 @@ local function WatchFrame(mouseFrame, target, focusKey, includeChildren, options
 		end
 	end
 
-	target.VuiShouldFade = options.ShouldFade
-	targets[#targets + 1] = target
 end
 
 ---@param options FadeOptions
@@ -174,7 +184,9 @@ local function CreateFadeOut(frame, options)
 	fade:SetSmoothing("IN_OUT")
 
 	ag:HookScript("OnFinished", function(self)
-		if self.VuiSuppressFinish then
+		local suppress = self.VuiSuppressFinish
+		self.VuiSuppressFinish = false
+		if suppress then
 			return
 		end
 
@@ -196,7 +208,9 @@ local function CreateFadeIn(frame, options)
 	fade:SetSmoothing("IN_OUT")
 
 	ag:HookScript("OnFinished", function(self)
-		if self.VuiSuppressFinish then
+		local suppress = self.VuiSuppressFinish
+		self.VuiSuppressFinish = false
+		if suppress then
 			return
 		end
 
@@ -233,6 +247,9 @@ function M:RegisterFade(options)
 	local target = options.Target
 
 	WatchFrame(mouseFrame, target, math.random(), options.IncludeChildren, options)
+
+	target.VuiShouldFade = options.ShouldFade
+	targets[#targets + 1] = target
 
 	if not options.ShouldFade or options.ShouldFade() then
 		target:SetAlpha(0)

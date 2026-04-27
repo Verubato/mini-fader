@@ -57,11 +57,36 @@ local function RegisterMicroMenu()
 	fader:RegisterFade({
 		Target = MicroMenu,
 		IncludeChildren = true,
-		EnableMouse = false,
 		ShouldFade = function()
 			return db.Frames.MicroMenu
 		end,
 	})
+
+	-- Blizzard's hover-icon animation on a child can be left stranded at alpha=0
+	-- (shown but invisible) when MicroMenu was fading in from alpha=0 at hover time,
+	-- causing Blizzard's animation to start from the wrong value. Scan every frame
+	-- during fade-in so the fix applies within ~16ms of the texture getting stuck.
+	local function FixStuckTextures()
+		local cs = { MicroMenu:GetChildren() }
+		for _, c in ipairs(cs) do
+			for _, region in ipairs({ c:GetRegions() }) do
+				if region.GetAlpha and region:GetAlpha() == 0 and region.IsShown and region:IsShown() then
+					region:SetAlpha(1)
+				end
+			end
+		end
+	end
+
+	local fixFrame = CreateFrame("Frame")
+	MicroMenu.VuiFadeIn:HookScript("OnPlay", function()
+		fixFrame:SetScript("OnUpdate", function()
+			FixStuckTextures()
+			if not MicroMenu.VuiFadeIn:IsPlaying() then
+				fixFrame:SetScript("OnUpdate", nil)
+				FixStuckTextures()
+			end
+		end)
+	end)
 end
 
 local function RegisterQuests()
