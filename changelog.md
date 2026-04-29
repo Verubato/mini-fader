@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.5.0
+
+Fixed quick mouse movements causing invisible micro menu icons.
+
 ## 1.4.0
 
 Added Blizzard's damage meter.
