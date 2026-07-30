@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.5.1
+
+12.1 version support
+
 ## 1.5.0
 
 Fixed quick mouse movements causing invisible micro menu icons.
