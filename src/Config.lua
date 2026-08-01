@@ -60,41 +60,22 @@ local function LayoutSettings(settings, relativeTo, xOffset, yOffset)
 	return bottomLeftCheckbox
 end
 
-local function AddCategory(panel)
-	if Settings then
-		local category = Settings.RegisterCanvasLayoutCategory(panel, panel.name)
-		Settings.RegisterAddOnCategory(category)
-
-		return category
-	elseif InterfaceOptions_AddCategory then
-		InterfaceOptions_AddCategory(panel)
-
-		return panel
-	end
-
-	return nil
-end
-
 function M:Init()
 	db = mini:GetSavedVars(dbDefaults)
 
 	local panel = CreateFrame("Frame")
 	panel.name = addonName
 
-	local category = AddCategory(panel)
+	local category = mini:AddCategory(panel)
 
 	if not category then
 		return
 	end
 
-	local version = C_AddOns.GetAddOnMetadata(addonName, "Version")
-	local title = panel:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
-	title:SetPoint("TOPLEFT", 0, -verticalSpacing)
-	title:SetText(string.format("%s - %s", addonName, version))
-
-	local description = panel:CreateFontString(nil, "ARTWORK", "GameFontWhite")
-	description:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -8)
-	description:SetText("Simplify your UI.")
+	local header = mini:PanelHeader({
+		Parent = panel,
+		Description = "Simplify your UI.",
+	})
 
 	local mainDivider = mini:Divider({
 		Parent = panel,
@@ -103,7 +84,7 @@ function M:Init()
 
 	mainDivider:SetPoint("LEFT", panel, "LEFT")
 	mainDivider:SetPoint("RIGHT", panel, "RIGHT")
-	mainDivider:SetPoint("TOP", description, "BOTTOM", 0, -verticalSpacing)
+	mainDivider:SetPoint("TOP", header.Anchor, "BOTTOM", 0, -verticalSpacing)
 
 	---@type CheckboxOptions[]
 	local settings = {
