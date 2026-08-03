@@ -28,6 +28,7 @@ local dbDefaults = {
 		},
 	},
 }
+---@class Config
 local M = {}
 addon.Config = M
 
