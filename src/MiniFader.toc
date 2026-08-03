@@ -1,4 +1,4 @@
-## Interface: 120100, 120001, 120000, 110207
+## Interface: 120100, 120007, 120001, 120000, 110207
 ## Title: MiniFader
 ## Notes: Fades out certain frames including bags, micro menu, and quests tracker.
 ## Author: Verz
