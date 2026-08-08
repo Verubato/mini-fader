@@ -26,7 +26,7 @@ Feedback and feature requests are more than welcome!
 
 ## Screenshots
 
-![MiniFader screenshot](https://raw.githubusercontent.com/Verubato/mini-fader/main/assets/ScreenshotSettings.png)
+![MiniFader screenshot](https://raw.githubusercontent.com/Verubato/mini-fader/main/assets/Screenshots/Settings.png)
 
 ## Download
 
