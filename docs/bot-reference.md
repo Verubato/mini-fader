@@ -11,8 +11,8 @@ collapse/expand arrow, chat tabs/buttons/background, and Blizzard's damage meter
 
 | Item | Value |
 |---|---|
-| Version | 1.6.3 |
-| Interface versions (.toc) | 120100, 120007, 120001, 120000, 110207 (retail only: Midnight 12.x and 11.2.7) |
+| Version | 1.6.4 |
+| Interface versions (.toc) | 120100 (retail only: Midnight 12.1) |
 | Saved variables | MiniFaderDB, account wide (settings shared across characters) |
 | Slash commands | /minifader, /mf (both open the settings panel) |
 | Settings location | Game Menu -> Options -> AddOns -> MiniFader |
@@ -94,6 +94,6 @@ Section "Objective Tracker Options":
 - "Micro menu icons are invisible after mousing over quickly": fixed in 1.5.0; update the
   addon if on an older version.
 - "Settings are the same on all my characters": yes, settings are account wide.
-- "Does it work on Classic?": no; the .toc lists retail interface versions only.
+- "Does it work on Classic?": no; the .toc lists retail 12.1 only.
 - "Can I change the fade delay or speed?": no options for that; timings are fixed
   (0.5s in, 1s out, 3s delay, 2s for chat).
