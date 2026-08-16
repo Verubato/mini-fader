@@ -1,6 +1,7 @@
 ## Interface: 120100
 ## Title: MiniFader
 ## Notes: Fades out certain frames including bags, micro menu, and quests tracker.
+## Category: Mini
 ## Author: Verz
 ## Version: 1.6.4
 ## SavedVariables: MiniFaderDB
