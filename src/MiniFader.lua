@@ -66,19 +66,38 @@ local function RegisterMicroMenu()
 	-- (shown but invisible) when MicroMenu was fading in from alpha=0 at hover time,
 	-- causing Blizzard's animation to start from the wrong value. Scan every frame
 	-- during fade-in so the fix applies within ~16ms of the texture getting stuck.
-	local function FixStuckTextures()
-		local cs = { MicroMenu:GetChildren() }
-		for _, c in ipairs(cs) do
-			for _, region in ipairs({ c:GetRegions() }) do
-				if region.GetAlpha and region:GetAlpha() == 0 and region.IsShown and region:IsShown() then
-					region:SetAlpha(1)
+
+	-- The regions that scan looks at. Gathered once per fade rather than per frame: a fade is
+	-- some sixty frames and the menu cannot gain a button midway through one, but it can
+	-- between fades, so a stale list never outlives a single fade.
+	local stuckCandidates = {}
+
+	local function CollectStuckCandidates()
+		wipe(stuckCandidates)
+
+		for _, child in ipairs({ MicroMenu:GetChildren() }) do
+			for _, region in ipairs({ child:GetRegions() }) do
+				if region.GetAlpha and region.IsShown then
+					stuckCandidates[#stuckCandidates + 1] = region
 				end
+			end
+		end
+	end
+
+	local function FixStuckTextures()
+		for i = 1, #stuckCandidates do
+			local region = stuckCandidates[i]
+
+			if region:GetAlpha() == 0 and region:IsShown() then
+				region:SetAlpha(1)
 			end
 		end
 	end
 
 	local fixFrame = CreateFrame("Frame")
 	MicroMenu.VuiFadeIn:HookScript("OnPlay", function()
+		CollectStuckCandidates()
+
 		fixFrame:SetScript("OnUpdate", function()
 			FixStuckTextures()
 			if not MicroMenu.VuiFadeIn:IsPlaying() then

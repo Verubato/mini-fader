@@ -246,6 +246,16 @@ function M:RegisterFade(options)
 	local mouseFrame = options.MouseFrame or options.Target
 	local target = options.Target
 
+	-- Registration is driven from PLAYER_ENTERING_WORLD, which comes round again on every zone
+	-- change. Without this each pass would stack another set of mouse hooks, leave the previous
+	-- animation groups orphaned on the frame, and add one more entry to targets. Per target
+	-- rather than a single flag, so a frame that only appears later still gets picked up.
+	if target.VuiRegistered then
+		return
+	end
+
+	target.VuiRegistered = true
+
 	WatchFrame(mouseFrame, target, math.random(), options.IncludeChildren, options)
 
 	target.VuiShouldFade = options.ShouldFade
