@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.6.6
+
+Reduced CPU use while the micro menu fades in, and stopped every fade target being registered again on each zone change.
+
 ## 1.6.5
 
 Added a Mini category so the addon groups with the other Mini addons in the addon list.

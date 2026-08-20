@@ -11,7 +11,7 @@ collapse/expand arrow, chat tabs/buttons/background, and Blizzard's damage meter
 
 | Item | Value |
 |---|---|
-| Version | 1.6.4 |
+| Version | 1.6.6 |
 | Interface versions (.toc) | 120100 (retail only: Midnight 12.1) |
 | Saved variables | MiniFaderDB, account wide (settings shared across characters) |
 | Slash commands | /minifader, /mf (both open the settings panel) |
