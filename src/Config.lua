@@ -237,8 +237,12 @@ function M:Init()
 
 	LayoutSettings(objTrackerSettings, objTrackerDivider, 0, -verticalSpacing * 2)
 
+	-- /mf belongs to MiniFrames; everything here is spelled out for fading instead.
 	mini:RegisterSlashCommand(category, panel, {
+		"/fade",
+		"/minifade",
 		"/minifader",
-		"/mf",
+		"/mfade",
+		"/mfader",
 	})
 end

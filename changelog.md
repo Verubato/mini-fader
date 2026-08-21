@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.6.7
+
+Changed the slash commands to /fade, /minifade, /minifader, /mfade, and /mfader, freeing /mf for MiniFrames.
+
 ## 1.6.6
 
 Reduced CPU use while the micro menu fades in, and stopped every fade target being registered again on each zone change.
