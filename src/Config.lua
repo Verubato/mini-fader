@@ -18,6 +18,8 @@ local dbDefaults = {
 		CollapseAndExpandButton = false,
 		Chat = false,
 		DamageMeter = false,
+		ActionBars = false,
+		PlayerFrame = false,
 	},
 	Options = {
 		ObjectiveTracker = {
@@ -189,6 +191,32 @@ function M:Init()
 			end,
 			SetValue = function(enabled)
 				db.Frames.DamageMeter = enabled
+				fader:Refresh()
+				addon:Refresh()
+			end,
+		},
+		{
+			Parent = panel,
+			LabelText = "Action bars",
+			Tooltip = "Fade the action bars while out of combat and outside instances.",
+			GetValue = function()
+				return db.Frames.ActionBars
+			end,
+			SetValue = function(enabled)
+				db.Frames.ActionBars = enabled
+				fader:Refresh()
+				addon:Refresh()
+			end,
+		},
+		{
+			Parent = panel,
+			LabelText = "Player frame",
+			Tooltip = "Fade the player's health and power bars while out of combat and outside instances.",
+			GetValue = function()
+				return db.Frames.PlayerFrame
+			end,
+			SetValue = function(enabled)
+				db.Frames.PlayerFrame = enabled
 				fader:Refresh()
 				addon:Refresh()
 			end,

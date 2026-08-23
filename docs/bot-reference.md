@@ -5,7 +5,9 @@
 MiniFader hides (fades out) selected pieces of the default Blizzard UI and fades them back
 in when you mouse over them, for a cleaner, minimal UI. Supported frames: bags bar, micro
 menu, objective/quest tracker, raid manager flyout, XP and reputation bars, the buffs
-collapse/expand arrow, chat tabs/buttons/background, and Blizzard's damage meter windows.
+collapse/expand arrow, chat tabs/buttons/background, Blizzard's damage meter windows, the
+action bars, and the player frame. The action bars and player frame only fade while out of
+combat and outside instances.
 
 ## Facts
 
@@ -14,7 +16,7 @@ collapse/expand arrow, chat tabs/buttons/background, and Blizzard's damage meter
 | Version | 1.6.6 |
 | Interface versions (.toc) | 120100 (retail only: Midnight 12.1) |
 | Saved variables | MiniFaderDB, account wide (settings shared across characters) |
-| Slash commands | /minifader, /mf (both open the settings panel) |
+| Slash commands | /fade, /minifade, /minifader, /mfade, /mfader (all open the settings panel) |
 | Settings location | Game Menu -> Options -> AddOns -> MiniFader |
 | Support | Discord: https://discord.gg/UruPTPHHxK |
 
@@ -26,6 +28,10 @@ collapse/expand arrow, chat tabs/buttons/background, and Blizzard's damage meter
   fades out over 1 second. Hovering again during the wait cancels the fade-out.
 - Toggling a checkbox in the options applies instantly: the frame snaps to invisible
   (enabled) or visible (disabled).
+- A frame that stops fading because the game changed (combat starting, a loading screen)
+  appears instantly; one that starts fading for the same reason eases out over 1 second
+  instead of snapping, unless the mouse is on it.
+- Some frames fade as a set: hovering any one action bar brings all of them back.
 - Faded frames still occupy their screen position; hover where the frame normally is to
   bring it back.
 - Frames are picked up once on loading screen entry; a frame that does not exist on your
@@ -45,6 +51,8 @@ Section "Main" (all checkboxes):
 | Raid manager | ON | CompactRaidFrameManager flyout on the left screen edge | "Fade the raid manager flyout (left of screen flyout menu)." |
 | Buffs button | OFF | The collapse/expand arrow next to buffs | "Fade the collapse/expand buffs arrow button." |
 | Damage meter | OFF | Blizzard damage meter windows | "Fade the Blizzard damage meter." |
+| Action bars | OFF | All the default action bars, out of combat and outside instances only | "Fade the action bars while out of combat and outside instances." |
+| Player frame | OFF | The player's health/power frame, out of combat and outside instances only | "Fade the player's health and power bars while out of combat and outside instances." |
 
 Section "Objective Tracker Options":
 
@@ -72,11 +80,21 @@ Section "Objective Tracker Options":
   could otherwise leave icons invisible after fast mouse movements (fixed in 1.5.0).
 - Objective tracker and XP bars have mouse interactivity enabled by the addon so hover
   can be detected.
+- Action bars: all eight action bars plus the stance, pet and possess bars. Each is found by
+  frame name (MainActionBar on 12.1, MainMenuBar before that), or through the frame its
+  buttons hang off when the client has none of the names it knows. They show the moment combat starts and fade again when it ends. They fade as one group, so hovering any bar (or any button on it)
+  brings the whole set back, which matters for bars stacked on top of each other. Mouse
+  interactivity is not added: the buttons already have it, so clicks still pass through the
+  empty parts of a bar.
+- Player frame: fades outside combat and outside instances, and shows instantly when combat
+  starts. The pet frame fades with it because it is part of the player frame.
+- Minimap: not supported. Its blips and location icons are drawn by the client rather than
+  by a frame, so they ignore alpha and would stay put over a faded map.
 
 ## Troubleshooting by symptom
 
 - "Frame X is gone / I can't find it": it is faded, not removed; move the mouse to where
-  it normally sits and it fades back in. Or untick its checkbox in /mf.
+  it normally sits and it fades back in. Or untick its checkbox in /fade.
 - "The quest tracker still shows in dungeons": default behaviour; "Fade in PvE" is off by
   default. Enable it under "Objective Tracker Options".
 - "The quest tracker is hidden in battlegrounds and I want it": turn off "Fade in PvP"
@@ -86,7 +104,11 @@ Section "Objective Tracker Options":
 - "Chat tabs still flash or reset after enabling Chat": part of the chat setup (the hook
   that keeps tab alpha at zero) is only installed at load time when the setting is already
   on, so do a /reload after enabling Chat fading for full effect.
-- "A frame isn't fading at all": confirm its checkbox is on in /mf; the addon only hooks
+- "My action bars vanish out of combat": that is the "Action bars" setting; they come back
+  in combat or on mouseover. Untick it to stop.
+- "The action bars don't fade in combat, or in a dungeon/raid/battleground": intentional; the
+  action bars and player frame only fade out of combat and outside instances.
+- "A frame isn't fading at all": confirm its checkbox is on in /fade; the addon only hooks
   frames that exist when you first enter the world, so a frame created later by another
   addon or a UI reload mid-session may need a /reload. Also note MiniFader targets the
   default Blizzard frames; bars replaced by addons like Bartender or ElvUI are not

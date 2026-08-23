@@ -14,9 +14,11 @@ Currently supported frames include:
 - Collapse/expand buffs arrow.
 - Chat tabs and icons.
 - Blizzard's damage meters.
+- Action bars, outside combat and instances.
+- Player frame, outside combat and instances.
 - More to come!
 
-Configure which frames to fade with /minifader or /mf.
+Configure which frames to fade with /fade or /minifader.
 
 This is a brand new addon and features will be added over time.
 
