@@ -74,8 +74,9 @@ Section "Objective Tracker Options":
 - Chat: hides the chat tab, the window border/background textures and Blizzard's
   background, replacing the background with a subtle black one (25% alpha) that appears on
   hover over the chat frame. The chat side buttons and the social/Quick Join toast button
-  fade with it. Tabs show instantly on mouseover while enabled. Applies to all chat
-  windows/tabs.
+  fade with it. Tabs are faded rather than hidden, so they stay clickable, and every tab's
+  alpha is put back when the setting is turned off. Applies to all chat windows/tabs, and
+  toggling it takes effect without a reload.
 - Micro menu: fades the whole menu and includes a fix for Blizzard's hover animation that
   could otherwise leave icons invisible after fast mouse movements (fixed in 1.5.0).
 - Objective tracker and XP bars have mouse interactivity enabled by the addon so hover
@@ -101,9 +102,6 @@ Section "Objective Tracker Options":
   under "Objective Tracker Options".
 - "The damage meter doesn't fade in raids/dungeons": intentional; the damage meter only
   fades outside instances.
-- "Chat tabs still flash or reset after enabling Chat": part of the chat setup (the hook
-  that keeps tab alpha at zero) is only installed at load time when the setting is already
-  on, so do a /reload after enabling Chat fading for full effect.
 - "My action bars vanish out of combat": that is the "Action bars" setting; they come back
   in combat or on mouseover. Untick it to stop.
 - "The action bars don't fade in combat, or in a dungeon/raid/battleground": intentional; the

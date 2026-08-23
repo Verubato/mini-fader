@@ -279,8 +279,9 @@ end
 local function RefreshChat()
 	local tab = 1
 	local chatFrame = _G["ChatFrame" .. tab]
-	local chatFrameTab = _G["ChatFrame" .. tab .. "Tab"]
 	local fade = db.Frames.Chat
+	-- 0.2 is what Blizzard rests an unfocused tab at
+	local tabAlpha = fade and 0 or 0.2
 
 	while chatFrame ~= nil do
 		local bottomTexture = _G["ChatFrame" .. tab .. "BottomTexture"]
@@ -302,7 +303,6 @@ local function RefreshChat()
 			topLeftTexture,
 			bottomRightTexture,
 			bottomLeftTexture,
-			chatFrameTab,
 			bg,
 		}
 
@@ -314,41 +314,30 @@ local function RefreshChat()
 			end
 		end
 
-		if fade then
-			chatFrameTab.noMouseAlpha = 0
-
-			if chatFrame.MiniFaderBackground then
+		if chatFrame.MiniFaderBackground then
+			if fade then
 				chatFrame.MiniFaderBackground:Show()
-			end
-
-			chatFrameTab:SetAlpha(0)
-		else
-			chatFrameTab.noMouseAlpha = 0.2
-
-			if chatFrame.MiniFaderBackground then
+			else
 				chatFrame.MiniFaderBackground:Hide()
 			end
-
-			chatFrameTab:SetAlpha(0.2)
 		end
 
 		tab = tab + 1
 		chatFrame = _G["ChatFrame" .. tab]
 	end
 
-	-- it seems chat frames are lazy loaded, so we can have tabs without frames
-	-- don't :Show() tabs though as there are lots of hidden invalid tabs
-	if fade then
-		tab = 1
-		chatFrameTab = _G["ChatFrame" .. tab .. "Tab"]
+	-- Every tab, including the ones whose chat frame hasn't been created yet, because a tab left
+	-- at zero from an earlier fade would come back invisible. Alpha only: a hidden tab can't be
+	-- clicked, and Blizzard owns which tabs are shown in the first place.
+	tab = 1
+	local nextTab = _G["ChatFrame" .. tab .. "Tab"]
 
-		while chatFrameTab ~= nil do
-			chatFrameTab:SetAlpha(0)
-			chatFrameTab.noMouseAlpha = 0
+	while nextTab ~= nil do
+		nextTab:SetAlpha(tabAlpha)
+		nextTab.noMouseAlpha = tabAlpha
 
-			tab = tab + 1
-			chatFrameTab = _G["ChatFrame" .. tab .. "Tab"]
-		end
+		tab = tab + 1
+		nextTab = _G["ChatFrame" .. tab .. "Tab"]
 	end
 
 	if fade then
@@ -360,8 +349,14 @@ local function RefreshChat()
 end
 
 local function InitChat()
-	if FCFTab_UpdateAlpha and db.Frames.Chat then
+	-- Hooked whatever the setting says and checked on each call, so turning fading on or off
+	-- takes effect there and then. A hook installed once can't be taken back off.
+	if FCFTab_UpdateAlpha then
 		hooksecurefunc("FCFTab_UpdateAlpha", function(cf)
+			if not db.Frames.Chat then
+				return
+			end
+
 			local chatTab = _G[cf:GetName() .. "Tab"]
 			chatTab.noMouseAlpha = 0
 			chatTab:SetAlpha(0)

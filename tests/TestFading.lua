@@ -110,6 +110,39 @@ fw.describe("MiniFader - fading", function()
 		fw.eq(PlayerFrame:GetAlpha(), 1, "player frame alpha in combat")
 	end)
 
+	fw.it("puts every chat tab back when chat fading is turned off", function()
+		local context = LoginWith({ Chat = true })
+
+		fw.eq(ChatFrame2Tab:GetAlpha(), 0, "second tab alpha while fading")
+
+		-- faded, never hidden: a hidden tab can't be clicked
+		fw.truthy(ChatFrame2Tab:IsShown(), "second tab shown while fading")
+
+		-- what ticking the checkbox off does
+		_G.MiniFaderDB.Frames.Chat = false
+		context.Addon:Refresh()
+
+		fw.eq(ChatFrame2Tab:GetAlpha(), 0.2, "second tab alpha after")
+
+		-- the client updating tab alpha must not put the fade back
+		FCFTab_UpdateAlpha(ChatFrame2)
+
+		fw.eq(ChatFrame2Tab:GetAlpha(), 0.2, "second tab alpha after a client update")
+	end)
+
+	fw.it("starts fading the chat tabs without a reload", function()
+		local context = LoginWith({ Chat = false })
+
+		_G.MiniFaderDB.Frames.Chat = true
+		context.Addon:Refresh()
+
+		fw.eq(ChatFrame2Tab:GetAlpha(), 0, "second tab alpha")
+
+		FCFTab_UpdateAlpha(ChatFrame2)
+
+		fw.eq(ChatFrame2Tab:GetAlpha(), 0, "second tab alpha after a client update")
+	end)
+
 	fw.it("brings back every frame in a group when one of them is hovered", function()
 		local context = LoginWith({})
 		local fader = context.Addon.Fader
