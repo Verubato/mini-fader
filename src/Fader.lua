@@ -10,7 +10,8 @@ local targets = {}
 local M = {}
 addon.Fader = M
 
-local function AnyHasFocus(mouseFrame)
+---Whether anything belonging to a fade group is under the mouse.
+local function AnyHasFocus(group)
 	-- walk up the parent tree and see if anything has focus
 	local focusedFrames = GetMouseFoci()
 	local stack = {}
@@ -22,19 +23,18 @@ local function AnyHasFocus(mouseFrame)
 	local next = table.remove(stack)
 
 	while next do
-		-- use the focusKey to determine which frame stack we're looking at
-		if next.VuiHasFocus and next.VuiFocusKey == mouseFrame.VuiFocusKey then
+		-- a frame can wake several groups, such as the chat window behind both the chat
+		-- background and the chat buttons, so ask whether it wakes this one
+		if next.VuiHasFocus and next.VuiFocusGroups and next.VuiFocusGroups[group] then
 			return true
 		end
 
-		-- don't traverse above mouseFrame, but don't return early —
-		-- there may be other frames in the stack (from GetMouseFoci) still to check
-		if next ~= mouseFrame then
-			local parent = next:GetParent()
+		-- what's under the mouse is often an unwatched child of a watched frame,
+		-- so keep climbing rather than stopping at the first one
+		local parent = next:GetParent()
 
-			if parent and parent ~= UIParent then
-				table.insert(stack, parent)
-			end
+		if parent and parent ~= UIParent then
+			table.insert(stack, parent)
 		end
 
 		next = table.remove(stack)
@@ -56,94 +56,118 @@ local function StopAnimationPreserveAlpha(target, ag)
 	target:SetAlpha(alpha)
 end
 
-local function ScheduleFadeOut(mouseFrame, target, force, timeUntilFadeOut)
-	if target.VuiLeaveScheduled and not force then
+local function FadeIn(target)
+	StopAnimationPreserveAlpha(target, target.VuiFadeOut)
+
+	if target:GetAlpha() ~= target.VuiFadeInAlpha and not target.VuiFadeIn:IsPlaying() then
+		-- always fade in from current alpha
+		target.VuiFadeIn.Fade:SetFromAlpha(target:GetAlpha())
+		target.VuiFadeIn:Play()
+	end
+end
+
+local function FadeOut(target)
+	if target.VuiFadeOut:IsPlaying() then
 		return
 	end
 
-	target.VuiLeaveScheduled = true
+	StopAnimationPreserveAlpha(target, target.VuiFadeIn)
 
+	if target:GetAlpha() == 0 then
+		return
+	end
+
+	-- always fade out from current alpha
+	target.VuiFadeOut.Fade:SetFromAlpha(target:GetAlpha())
+	target.VuiFadeOut:Play()
+end
+
+local function CancelFadeOutTimer(group)
+	if group.FadeOutTimer then
+		group.FadeOutTimer:Cancel()
+		group.FadeOutTimer = nil
+	end
+end
+
+---One timer for the whole group: they all left the mouse at the same moment, and a bar with
+---a dozen buttons on it would otherwise re-arm a timer per target on every button crossed.
+local function ScheduleFadeOut(group, timeUntilFadeOut)
 	timeUntilFadeOut = timeUntilFadeOut or defaultTimeUntilFadeOut
-	local timeToWait = timeUntilFadeOut - (GetTime() - target.VuiLastLeft)
-
-	local function TryFadeOut()
-		-- if fade-in is still running, wait for it to finish before starting fade-out.
-		-- GetAlpha() returns the animated value during animation, so the alpha != 0 check
-		-- below would pass mid-fade-in, causing us to stop the fade-in prematurely.
-		if target.VuiFadeIn:IsPlaying() then
-			C_Timer.After(fadeInDuration, TryFadeOut)
-			return
-		end
-
-		-- guard against stale C_Timer.After retries firing too early: a later OnLeave may
-		-- have updated VuiLastLeft, so re-check that the full grace period has elapsed.
-		if GetTime() - target.VuiLastLeft < timeUntilFadeOut then
-			return
-		end
-
-		if
-			(not target.VuiShouldFade or target.VuiShouldFade())
-			and target:GetAlpha() ~= 0
-			and not AnyHasFocus(mouseFrame)
-			and not target.VuiFadeOut:IsPlaying()
-		then
-			-- always fade out from current alpha
-			if target.VuiFadeOut and target.VuiFadeOut.Fade then
-				target.VuiFadeOut.Fade:SetFromAlpha(target:GetAlpha())
-			end
-
-			target.VuiFadeOut:Play()
-		end
-	end
-
-	if target.VuiFadeOutTimer then
-		target.VuiFadeOutTimer:Cancel()
-		target.VuiFadeOutTimer = nil
-	end
 
 	local function Fire()
-		target.VuiLeaveScheduled = false
-		target.VuiFadeOutTimer = nil
-		TryFadeOut()
+		group.FadeOutTimer = nil
+
+		-- wait for a running fade-in to finish first. GetAlpha() returns the animated value
+		-- during an animation, so FadeOut's alpha check would pass mid-fade-in and cut it off.
+		for i = 1, #group.Targets do
+			if group.Targets[i].VuiFadeIn:IsPlaying() then
+				group.FadeOutTimer = C_Timer.NewTimer(fadeInDuration, Fire)
+				return
+			end
+		end
+
+		-- a later leave pushed the deadline out, so wait out whatever is left of it
+		local remaining = timeUntilFadeOut - (GetTime() - group.LastLeft)
+
+		if remaining > 0 then
+			group.FadeOutTimer = C_Timer.NewTimer(remaining, Fire)
+			return
+		end
+
+		if AnyHasFocus(group) then
+			return
+		end
+
+		for i = 1, #group.Targets do
+			local target = group.Targets[i]
+
+			if not target.VuiShouldFade or target.VuiShouldFade() then
+				FadeOut(target)
+			end
+		end
 	end
+
+	CancelFadeOutTimer(group)
+
+	local timeToWait = timeUntilFadeOut - (GetTime() - group.LastLeft)
 
 	if timeToWait <= 0 then
 		Fire()
 		return
 	end
 
-	target.VuiFadeOutTimer = C_Timer.NewTimer(timeToWait, Fire)
+	group.FadeOutTimer = C_Timer.NewTimer(timeToWait, Fire)
 end
 
-local function OnEnter(mouseFrame, target, fadeToAlpha)
+local function OnEnter(mouseFrame, group)
 	mouseFrame.VuiHasFocus = true
 
-	if target.VuiFadeOutTimer then
-		target.VuiFadeOutTimer:Cancel()
-		target.VuiFadeOutTimer = nil
-	end
-	target.VuiLeaveScheduled = false
+	CancelFadeOutTimer(group)
 
-	StopAnimationPreserveAlpha(target, target.VuiFadeOut)
-
-	if target:GetAlpha() ~= (fadeToAlpha or 1) and not target.VuiFadeIn:IsPlaying() then
-		if target.VuiFadeIn and target.VuiFadeIn.Fade then
-			target.VuiFadeIn.Fade:SetFromAlpha(target:GetAlpha())
-		end
-		target.VuiFadeIn:Play()
+	for i = 1, #group.Targets do
+		FadeIn(group.Targets[i])
 	end
 end
 
-local function OnLeave(mouseFrame, target, timeUntilFadeOut)
+local function OnLeave(mouseFrame, group, timeUntilFadeOut)
 	mouseFrame.VuiHasFocus = false
-	target.VuiLastLeft = GetTime()
+	group.LastLeft = GetTime()
 
-	ScheduleFadeOut(mouseFrame, target, false, timeUntilFadeOut)
+	ScheduleFadeOut(group, timeUntilFadeOut)
 end
 
+---@param depth number how many levels of children also count as hover targets
 ---@param options FadeOptions
-local function WatchFrame(mouseFrame, target, focusKey, includeChildren, options)
-	mouseFrame.VuiFocusKey = focusKey
+local function WatchFrame(mouseFrame, group, depth, options)
+	if group.MouseFrames[mouseFrame] then
+		return
+	end
+
+	group.MouseFrames[mouseFrame] = true
+
+	local focusGroups = mouseFrame.VuiFocusGroups or {}
+	focusGroups[group] = true
+	mouseFrame.VuiFocusGroups = focusGroups
 
 	-- don't enable interactivity if told not to
 	-- as this will intercept mouse events and prevent them from going to lower stack frames
@@ -153,22 +177,20 @@ local function WatchFrame(mouseFrame, target, focusKey, includeChildren, options
 
 	if options.EnableMouse or mouseFrame:IsMouseEnabled() then
 		mouseFrame:HookScript("OnEnter", function()
-			OnEnter(mouseFrame, target, options.FadeInToAlpha)
+			OnEnter(mouseFrame, group)
 		end)
 		mouseFrame:HookScript("OnLeave", function()
-			OnLeave(mouseFrame, target, options.TimeUntilFadeOut)
+			OnLeave(mouseFrame, group, options.TimeUntilFadeOut)
 		end)
 	end
 
-	if includeChildren then
+	if depth > 0 then
 		local children = { mouseFrame:GetChildren() }
 
 		for _, child in ipairs(children) do
-			-- don't recurse children
-			WatchFrame(child, target, focusKey, false, options)
+			WatchFrame(child, group, depth - 1, options)
 		end
 	end
-
 end
 
 ---@param options FadeOptions
@@ -220,55 +242,104 @@ local function CreateFadeIn(frame, options)
 	return ag
 end
 
-local function OnEvent()
-	M:Refresh()
-end
-
----Refreshes the fading state by rechecking the ShouldFade of each frame.
-function M:Refresh()
-	for i = 1, #targets do
-		local target = targets[i]
-		local shouldFade = target.VuiShouldFade
-
-		if shouldFade then
-			if shouldFade() then
-				target:SetAlpha(0)
-			else
-				target:SetAlpha(1)
-			end
-		end
-	end
-end
-
----Registers a frame to be faded.
 ---@param options FadeOptions
-function M:RegisterFade(options)
-	local mouseFrame = options.MouseFrame or options.Target
-	local target = options.Target
-
-	-- Registration is driven from PLAYER_ENTERING_WORLD, which comes round again on every zone
-	-- change. Without this each pass would stack another set of mouse hooks, leave the previous
-	-- animation groups orphaned on the frame, and add one more entry to targets. Per target
-	-- rather than a single flag, so a frame that only appears later still gets picked up.
-	if target.VuiRegistered then
-		return
-	end
-
-	target.VuiRegistered = true
-
-	WatchFrame(mouseFrame, target, math.random(), options.IncludeChildren, options)
-
+local function SetupTarget(target, group, options)
+	target.VuiFadeGroup = group
+	target.VuiFadeInAlpha = options.FadeInToAlpha or 1
 	target.VuiShouldFade = options.ShouldFade
+	target.VuiFadeOut = CreateFadeOut(target, options)
+	target.VuiFadeIn = CreateFadeIn(target, options)
+
+	group.Targets[#group.Targets + 1] = target
 	targets[#targets + 1] = target
 
 	if not options.ShouldFade or options.ShouldFade() then
 		target:SetAlpha(0)
 	else
-		target:SetAlpha(options.FadeInToAlpha or 1)
+		target:SetAlpha(target.VuiFadeInAlpha)
+	end
+end
+
+---The group these frames already belong to, if any of them has been registered before.
+local function FindGroup(groupTargets)
+	for i = 1, #groupTargets do
+		local group = groupTargets[i].VuiFadeGroup
+
+		if group then
+			return group
+		end
 	end
 
-	target.VuiFadeOut = CreateFadeOut(target, options)
-	target.VuiFadeIn = CreateFadeIn(target, options)
+	return nil
+end
+
+local function OnEvent()
+	-- the game changed under the player rather than the player asking for it,
+	-- so ease the frames away instead of snapping them out of existence
+	M:Refresh(true)
+end
+
+---Refreshes the fading state by rechecking the ShouldFade of each frame.
+---@param animate boolean? fade a frame out rather than snapping it to invisible.
+function M:Refresh(animate)
+	for i = 1, #targets do
+		local target = targets[i]
+		local shouldFade = target.VuiShouldFade
+
+		if shouldFade then
+			if not shouldFade() then
+				-- a frame that has stopped fading has to show now, mid-animation or not:
+				-- combat starts this way, and a running fade-out would hide it again
+				StopAnimationPreserveAlpha(target, target.VuiFadeIn)
+				StopAnimationPreserveAlpha(target, target.VuiFadeOut)
+				target:SetAlpha(target.VuiFadeInAlpha)
+			elseif not animate then
+				StopAnimationPreserveAlpha(target, target.VuiFadeIn)
+				StopAnimationPreserveAlpha(target, target.VuiFadeOut)
+				target:SetAlpha(0)
+			elseif not target.VuiFadeGroup.FadeOutTimer and not AnyHasFocus(target.VuiFadeGroup) then
+				-- a group already counting down keeps its grace period; it fades on its own
+				FadeOut(target)
+			end
+		end
+	end
+end
+
+---Registers one or more frames to be faded. Frames registered together fade as one, so
+---hovering any of them brings back the whole set.
+---@param options FadeOptions
+function M:RegisterFade(options)
+	local groupTargets = options.Targets or { options.Target }
+
+	if #groupTargets == 0 then
+		return
+	end
+
+	-- true means the direct children too, a number says how many levels deep to go
+	local depth = options.IncludeChildren == true and 1 or options.IncludeChildren or 0
+	local group = FindGroup(groupTargets) or { Targets = {}, MouseFrames = {} }
+
+	-- Registration is driven from PLAYER_ENTERING_WORLD, which comes round again on every zone
+	-- change, so every step below skips whatever it did last time. Otherwise each pass would
+	-- stack another set of mouse hooks, leave the previous animation groups orphaned on the
+	-- frame, and add one more entry to targets. Per frame rather than a single flag, so a
+	-- frame that only appears later still gets picked up.
+	for i = 1, #groupTargets do
+		local target = groupTargets[i]
+
+		if not target.VuiFadeGroup then
+			SetupTarget(target, group, options)
+
+			-- a frame is its own hover target unless told otherwise
+			if not options.MouseFrame then
+				WatchFrame(target, group, depth, options)
+			end
+		end
+	end
+
+	if options.MouseFrame then
+		WatchFrame(options.MouseFrame, group, depth, options)
+	end
 
 	if options.Events then
 		for i = 1, #options.Events do
@@ -286,13 +357,14 @@ eventsFrame:SetScript("OnEvent", OnEvent)
 
 ---@class FadeOptions
 ---@field Target table the target frame to fade
+---@field Targets table? several frames that fade as one, used instead of Target
 ---@field MouseFrame table? an optional frame that when the mouse enters/leaves this frame, the target frame will fade in/out.
 ---@field TimeUntilFadeOut number? the number of seconds until the frame starts to fades out.
 ---@field FadeInToAlpha number? the end alpha value to fade to.
 ---@field FadeInDuration number? number in seconds it takes to fade in.
 ---@field FadeOutFromCurrentAlpha boolean? whether to use the current alpha when fading out.
 ---@field FadeOutDuration number? number in seconds it takes to fade out.
----@field IncludeChildren boolean? listen for children frame mouse events.
+---@field IncludeChildren boolean|number? listen for children frame mouse events, true for one level deep or a number of levels.
 ---@field EnableMouse boolean? true by default, false means the mouse frame won't be configured for interactivity.
 ---@field ShouldFade fun(): boolean? a predicate to determine if the target should fade in.
 ---@field Events table? a list of events that trigger state changes to ShouldFade
