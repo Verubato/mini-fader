@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.7.0
+
+Added fading for the action bars and the player frame, both of which fade only while out of combat and outside instances, and both off by default.
+
+Frames can now fade as a set, so hovering any action bar brings back the whole stack, and a frame that stops fading because the game changed appears instantly rather than waiting.
+
+Fixed the buffs arrow not fading in from the buff frame, every chat tab past the first keeping the chat fade after the setting was turned off, and the micro menu leaving another texture scanner behind on every loading screen.
+
 ## 1.6.7
 
 Changed the slash commands to /fade, /minifade, /minifader, /mfade, and /mfader, freeing /mf for MiniFrames.

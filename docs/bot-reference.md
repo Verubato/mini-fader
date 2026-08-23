@@ -13,7 +13,7 @@ combat and outside instances.
 
 | Item | Value |
 |---|---|
-| Version | 1.6.6 |
+| Version | 1.7.0 |
 | Interface versions (.toc) | 120100 (retail only: Midnight 12.1) |
 | Saved variables | MiniFaderDB, account wide (settings shared across characters) |
 | Slash commands | /fade, /minifade, /minifader, /mfade, /mfader (all open the settings panel) |
