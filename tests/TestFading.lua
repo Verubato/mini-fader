@@ -143,6 +143,17 @@ fw.describe("MiniFader - fading", function()
 		fw.eq(ChatFrame2Tab:GetAlpha(), 0, "second tab alpha after a client update")
 	end)
 
+	fw.it("sets the micro menu scanner up once, not once per loading screen", function()
+		LoginWith({})
+
+		local before = WowMock.AddonFrameCount()
+
+		WowMock.FireEvent("PLAYER_ENTERING_WORLD")
+		WowMock.RunTimers()
+
+		fw.eq(WowMock.AddonFrameCount(), before, "frames left behind by a second loading screen")
+	end)
+
 	fw.it("brings back every frame in a group when one of them is hovered", function()
 		local context = LoginWith({})
 		local fader = context.Addon.Fader

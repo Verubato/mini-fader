@@ -80,6 +80,12 @@ local function RegisterMicroMenu()
 		end,
 	})
 
+	-- Every loading screen comes back through here, and one scanner is enough: another would
+	-- leave a frame and an OnPlay hook behind per zone change, all doing the same work.
+	if MicroMenu.VuiStuckFixFrame then
+		return
+	end
+
 	-- Blizzard's hover-icon animation on a child can be left stranded at alpha=0
 	-- (shown but invisible) when MicroMenu was fading in from alpha=0 at hover time,
 	-- causing Blizzard's animation to start from the wrong value. Scan every frame
@@ -113,6 +119,8 @@ local function RegisterMicroMenu()
 	end
 
 	local fixFrame = CreateFrame("Frame")
+	MicroMenu.VuiStuckFixFrame = fixFrame
+
 	MicroMenu.VuiFadeIn:HookScript("OnPlay", function()
 		CollectStuckCandidates()
 
