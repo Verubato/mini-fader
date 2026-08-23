@@ -9,6 +9,18 @@
 ## X-Curse-Project-ID: 1420477
 
 Libs\MiniFramework\MiniFramework.xml
-Fader.lua
+Namespace.lua
+Core\Fader.lua
+Core\Registry.lua
+Modules\ObjectiveTracker.lua
+Modules\Bags.lua
+Modules\MicroMenu.lua
+Modules\Chat.lua
+Modules\StatusBars.lua
+Modules\RaidManager.lua
+Modules\BuffsButton.lua
+Modules\DamageMeter.lua
+Modules\ActionBars.lua
+Modules\PlayerFrame.lua
 Config.lua
 MiniFader.lua

@@ -1,35 +1,12 @@
 local addonName, addon = ...
 ---@type MiniFramework
 local mini = addon.Framework
+---@type Registry
+local registry = addon.Core.Registry
 local checkboxesPerLine = 4
 local checkboxWidth = 150
 local verticalSpacing = mini.VerticalSpacing
-local fader = addon.Fader
----@type Config
-local db
----@class Config
-local dbDefaults = {
-	Frames = {
-		BagsBar = true,
-		MicroMenu = true,
-		ObjectiveTrackerFrame = true,
-		CompactRaidFrameManager = true,
-		StatusTrackingBarManager = true,
-		CollapseAndExpandButton = false,
-		Chat = false,
-		DamageMeter = false,
-		ActionBars = false,
-		PlayerFrame = false,
-	},
-	Options = {
-		ObjectiveTracker = {
-			FadeWhen = {
-				InPvE = false,
-				InPvP = true,
-			},
-		},
-	},
-}
+
 ---@class Config
 local M = {}
 addon.Config = M
@@ -63,8 +40,81 @@ local function LayoutSettings(settings, relativeTo, xOffset, yOffset)
 	return bottomLeftCheckbox
 end
 
+---The saved variable defaults: whether each module fades, plus anything a module keeps of
+---its own.
+local function Defaults()
+	local defaults = { Frames = {} }
+	local modules = registry:GetAll()
+
+	for i = 1, #modules do
+		local module = modules[i]
+
+		defaults.Frames[module.Key] = module.Default
+
+		if module.Defaults then
+			mini:CopyTable(module.Defaults, defaults)
+		end
+	end
+
+	return defaults
+end
+
+---One checkbox per module, in the order the toc loaded them.
+---@return CheckboxOptions[]
+local function MainSettings(panel)
+	local settings = {}
+	local modules = registry:GetAll()
+
+	for i = 1, #modules do
+		local module = modules[i]
+
+		settings[#settings + 1] = {
+			Parent = panel,
+			LabelText = module.Title,
+			Tooltip = module.Tooltip,
+			GetValue = function()
+				return registry:IsEnabled(module.Key)
+			end,
+			SetValue = function(enabled)
+				registry:SetEnabled(module.Key, enabled)
+			end,
+		}
+	end
+
+	return settings
+end
+
+---A divider and a grid for each module that brings settings of its own, stacked under the
+---main grid.
+local function ModuleSections(panel, anchor)
+	local modules = registry:GetAll()
+
+	for i = 1, #modules do
+		local options = modules[i].Options
+
+		if options then
+			local divider = mini:Divider({
+				Parent = panel,
+				Text = options.Title,
+			})
+
+			divider:SetPoint("LEFT", panel, "LEFT")
+			divider:SetPoint("RIGHT", panel, "RIGHT")
+			divider:SetPoint("TOP", anchor, "BOTTOM", 0, -verticalSpacing)
+
+			-- the module has no panel to hand its checkboxes when it declares them
+			for j = 1, #options.Settings do
+				options.Settings[j].Parent = panel
+			end
+
+			-- a section with nothing in it still has to anchor the next one
+			anchor = LayoutSettings(options.Settings, divider, 0, -verticalSpacing * 2) or divider
+		end
+	end
+end
+
 function M:Init()
-	db = mini:GetSavedVars(dbDefaults)
+	mini:GetSavedVars(Defaults())
 
 	local panel = CreateFrame("Frame")
 	panel.name = addonName
@@ -89,181 +139,9 @@ function M:Init()
 	mainDivider:SetPoint("RIGHT", panel, "RIGHT")
 	mainDivider:SetPoint("TOP", header.Anchor, "BOTTOM", 0, -verticalSpacing)
 
-	---@type CheckboxOptions[]
-	local settings = {
-		{
-			Parent = panel,
-			LabelText = "Objective tracker",
-			Tooltip = "Fade the objective/quests tracker, but show it inside instances.",
-			GetValue = function()
-				return db.Frames.ObjectiveTrackerFrame
-			end,
-			SetValue = function(enabled)
-				db.Frames.ObjectiveTrackerFrame = enabled
-				fader:Refresh()
-				addon:Refresh()
-			end,
-		},
-		{
-			Parent = panel,
-			LabelText = "Bags",
-			Tooltip = "Fade the bags bar.",
-			GetValue = function()
-				return db.Frames.BagsBar
-			end,
-			SetValue = function(enabled)
-				db.Frames.BagsBar = enabled
-				fader:Refresh()
-				addon:Refresh()
-			end,
-		},
-		{
-			Parent = panel,
-			LabelText = "Micro Menu",
-			Tooltip = "Fade the micro menu.",
-			GetValue = function()
-				return db.Frames.MicroMenu
-			end,
-			SetValue = function(enabled)
-				db.Frames.MicroMenu = enabled
-				fader:Refresh()
-				addon:Refresh()
-			end,
-		},
-		{
-			Parent = panel,
-			LabelText = "Chat",
-			Tooltip = "Fade the chat tabs.",
-			GetValue = function()
-				return db.Frames.Chat
-			end,
-			SetValue = function(enabled)
-				db.Frames.Chat = enabled
-				fader:Refresh()
-				addon:Refresh()
-			end,
-		},
-		{
-			Parent = panel,
-			LabelText = "XP and Reputation",
-			Tooltip = "Fade the XP and Reputation bars.",
-			GetValue = function()
-				return db.Frames.StatusTrackingBarManager
-			end,
-			SetValue = function(enabled)
-				db.Frames.StatusTrackingBarManager = enabled
-				fader:Refresh()
-				addon:Refresh()
-			end,
-		},
-		{
-			Parent = panel,
-			LabelText = "Raid manager",
-			Tooltip = "Fade the raid manager flyout (left of screen flyout menu).",
-			GetValue = function()
-				return db.Frames.CompactRaidFrameManager
-			end,
-			SetValue = function(enabled)
-				db.Frames.CompactRaidFrameManager = enabled
-				fader:Refresh()
-				addon:Refresh()
-			end,
-		},
-		{
-			Parent = panel,
-			LabelText = "Buffs button",
-			Tooltip = "Fade the collapse/expand buffs arrow button.",
-			GetValue = function()
-				return db.Frames.CollapseAndExpandButton
-			end,
-			SetValue = function(enabled)
-				db.Frames.CollapseAndExpandButton = enabled
-				fader:Refresh()
-				addon:Refresh()
-			end,
-		},
-		{
-			Parent = panel,
-			LabelText = "Damage meter",
-			Tooltip = "Fade the Blizzard damage meter.",
-			GetValue = function()
-				return db.Frames.DamageMeter
-			end,
-			SetValue = function(enabled)
-				db.Frames.DamageMeter = enabled
-				fader:Refresh()
-				addon:Refresh()
-			end,
-		},
-		{
-			Parent = panel,
-			LabelText = "Action bars",
-			Tooltip = "Fade the action bars while out of combat and outside instances.",
-			GetValue = function()
-				return db.Frames.ActionBars
-			end,
-			SetValue = function(enabled)
-				db.Frames.ActionBars = enabled
-				fader:Refresh()
-				addon:Refresh()
-			end,
-		},
-		{
-			Parent = panel,
-			LabelText = "Player frame",
-			Tooltip = "Fade the player's health and power bars while out of combat and outside instances.",
-			GetValue = function()
-				return db.Frames.PlayerFrame
-			end,
-			SetValue = function(enabled)
-				db.Frames.PlayerFrame = enabled
-				fader:Refresh()
-				addon:Refresh()
-			end,
-		},
-	}
+	local anchor = LayoutSettings(MainSettings(panel), mainDivider, 0, -verticalSpacing * 2) or mainDivider
 
-	local anchor = LayoutSettings(settings, mainDivider, 0, -verticalSpacing * 2)
-	local objTrackerDivider = mini:Divider({
-		Parent = panel,
-		Text = "Objective Tracker Options",
-	})
-
-	objTrackerDivider:SetPoint("LEFT", panel, "LEFT")
-	objTrackerDivider:SetPoint("RIGHT", panel, "RIGHT")
-	objTrackerDivider:SetPoint("TOP", anchor, "BOTTOM", 0, -verticalSpacing)
-
-	---@type CheckboxOptions[]
-	local objTrackerSettings = {
-		{
-			Parent = panel,
-			LabelText = "Fade in PvP",
-			Tooltip = "Fade the objective/quests tracker in PvP instances.",
-			GetValue = function()
-				return db.Options.ObjectiveTracker.FadeWhen.InPvP
-			end,
-			SetValue = function(enabled)
-				db.Options.ObjectiveTracker.FadeWhen.InPvP = enabled
-				fader:Refresh()
-				addon:Refresh()
-			end,
-		},
-		{
-			Parent = panel,
-			LabelText = "Fade in PvE",
-			Tooltip = "Fade the objective/quests tracker in PvE instances.",
-			GetValue = function()
-				return db.Options.ObjectiveTracker.FadeWhen.InPvE
-			end,
-			SetValue = function(enabled)
-				db.Options.ObjectiveTracker.FadeWhen.InPvE = enabled
-				fader:Refresh()
-				addon:Refresh()
-			end,
-		},
-	}
-
-	LayoutSettings(objTrackerSettings, objTrackerDivider, 0, -verticalSpacing * 2)
+	ModuleSections(panel, anchor)
 
 	-- /mf belongs to MiniFrames; everything here is spelled out for fading instead.
 	mini:RegisterSlashCommand(category, panel, {

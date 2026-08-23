@@ -8,7 +8,7 @@ local targets = {}
 
 ---@class Fader
 local M = {}
-addon.Fader = M
+addon.Core.Fader = M
 
 ---Whether anything belonging to a fade group is under the mouse.
 local function AnyHasFocus(group)
@@ -329,11 +329,13 @@ function M:RegisterFade(options)
 
 		if not target.VuiFadeGroup then
 			SetupTarget(target, group, options)
+		end
 
-			-- a frame is its own hover target unless told otherwise
-			if not options.MouseFrame then
-				WatchFrame(target, group, depth, options)
-			end
+		-- A frame is its own hover target unless told otherwise. Outside the guard above so a
+		-- child the client only builds later still gets hooked; WatchFrame skips whatever this
+		-- group already watches.
+		if not options.MouseFrame then
+			WatchFrame(target, group, depth, options)
 		end
 	end
 

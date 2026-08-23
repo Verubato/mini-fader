@@ -120,7 +120,7 @@ fw.describe("MiniFader - fading", function()
 
 		-- what ticking the checkbox off does
 		_G.MiniFaderDB.Frames.Chat = false
-		context.Addon:Refresh()
+		context.Addon.Core.Registry:Refresh()
 
 		fw.eq(ChatFrame2Tab:GetAlpha(), 0.2, "second tab alpha after")
 
@@ -134,7 +134,7 @@ fw.describe("MiniFader - fading", function()
 		local context = LoginWith({ Chat = false })
 
 		_G.MiniFaderDB.Frames.Chat = true
-		context.Addon:Refresh()
+		context.Addon.Core.Registry:Refresh()
 
 		fw.eq(ChatFrame2Tab:GetAlpha(), 0, "second tab alpha")
 
@@ -156,7 +156,7 @@ fw.describe("MiniFader - fading", function()
 
 	fw.it("brings back every frame in a group when one of them is hovered", function()
 		local context = LoginWith({})
-		local fader = context.Addon.Fader
+		local fader = context.Addon.Core.Fader
 
 		local first = CreateFrame("Frame", nil, UIParent)
 		local second = CreateFrame("Frame", nil, UIParent)
@@ -179,7 +179,7 @@ fw.describe("MiniFader - fading", function()
 
 	fw.it("counts the fade-out grace period down once per group", function()
 		local context = LoginWith({})
-		local fader = context.Addon.Fader
+		local fader = context.Addon.Core.Fader
 
 		local first = CreateFrame("Frame", nil, UIParent)
 		local second = CreateFrame("Frame", nil, UIParent)
@@ -219,7 +219,7 @@ fw.describe("MiniFader - fading", function()
 
 	fw.it("picks up a frame that only joins its group later", function()
 		local context = LoginWith({})
-		local fader = context.Addon.Fader
+		local fader = context.Addon.Core.Fader
 
 		local first = CreateFrame("Frame", nil, UIParent)
 		local late = CreateFrame("Frame", nil, UIParent)
@@ -247,7 +247,7 @@ fw.describe("MiniFader - fading", function()
 
 	fw.it("lets one hover frame wake more than one group", function()
 		local context = LoginWith({})
-		local fader = context.Addon.Fader
+		local fader = context.Addon.Core.Fader
 
 		local hover = CreateFrame("Frame", nil, UIParent)
 
@@ -274,7 +274,7 @@ fw.describe("MiniFader - fading", function()
 
 	fw.it("takes an extra hover frame for an already registered target", function()
 		local context = LoginWith({})
-		local fader = context.Addon.Fader
+		local fader = context.Addon.Core.Fader
 
 		local target = CreateFrame("Frame", nil, UIParent)
 		local hover = CreateFrame("Frame", nil, UIParent)
