@@ -114,6 +114,9 @@ local function ModuleSections(panel, anchor)
 end
 
 function M:Init()
+	-- A styled button clashes with the stock Blizzard art around it in the settings screen.
+	mini:SetCustomStyling(true, { Button = false })
+
 	mini:GetSavedVars(Defaults())
 
 	local panel = CreateFrame("Frame")
