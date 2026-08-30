@@ -5,6 +5,29 @@ local fw = require("TestFramework")
 local harness = require("AddonHarness")
 local WowMock = require("WowMock")
 
+---Overrides one or more globals for the duration of fn, restoring them even if fn raises,
+---so one failing assertion can't leave a later test running against a patched global.
+---@param overrides table<string, any>
+---@param fn fun()
+local function WithGlobals(overrides, fn)
+	local reals = {}
+
+	for name, value in pairs(overrides) do
+		reals[name] = _G[name]
+		_G[name] = value
+	end
+
+	local ok, err = pcall(fn)
+
+	for name, value in pairs(reals) do
+		_G[name] = value
+	end
+
+	if not ok then
+		error(err, 0)
+	end
+end
+
 ---Loads the addon with the given frame settings already saved, then logs it in.
 local function LoginWith(frames)
 	local context = harness.Load("MiniFader")
@@ -296,5 +319,135 @@ fw.describe("MiniFader - fading", function()
 		hover:GetScript("OnEnter")(hover)
 
 		fw.truthy(target.VuiFadeIn:IsPlaying(), "target fading in")
+	end)
+
+	fw.it("schedules a single fade-out timer for a group even when more than one of its frames leaves", function()
+		local context = LoginWith({})
+		local fader = context.Addon.Core.Fader
+
+		local first = CreateFrame("Frame", nil, UIParent)
+		local second = CreateFrame("Frame", nil, UIParent)
+
+		first:EnableMouse(true)
+		second:EnableMouse(true)
+
+		fader:RegisterFade({
+			Targets = { first, second },
+			ShouldFade = function()
+				return true
+			end,
+		})
+
+		-- The mouse crossing between two buttons fires a leave on both frames in the same group.
+		first:GetScript("OnLeave")(first)
+		second:GetScript("OnLeave")(second)
+
+		WowMock.AdvanceTime(4)
+
+		fw.eq(WowMock.RunTimers(), 1, "only the group's own, most recently scheduled timer survives")
+	end)
+
+	fw.it("treats a deeply nested child under the mouse as still hovering its ancestor's group", function()
+		local context = LoginWith({})
+		local fader = context.Addon.Core.Fader
+
+		local target = CreateFrame("Frame", nil, UIParent)
+		target:EnableMouse(true)
+
+		fader:RegisterFade({
+			Target = target,
+			ShouldFade = function()
+				return true
+			end,
+		})
+
+		target:SetAlpha(1)
+		target:GetScript("OnLeave")(target)
+
+		-- OnEnter/OnLeave fire by screen position rather than frame nesting, so what the
+		-- client reports under the cursor can be an unwatched descendant several levels down
+		-- while the frame that owns the group is still the one carrying the focus flag
+		local mid = CreateFrame("Frame", nil, target)
+		local deepChild = CreateFrame("Frame", nil, mid)
+
+		target.VuiHasFocus = true
+
+		WithGlobals({
+			GetMouseFoci = function()
+				return { deepChild }
+			end,
+		}, function()
+			WowMock.AdvanceTime(4)
+			WowMock.RunTimers()
+
+			fw.falsy(target.VuiFadeOut:IsPlaying(), "fade-out suppressed by the hovered descendant")
+		end)
+	end)
+
+	fw.it("does not treat a frame outside any group as hovering it", function()
+		local context = LoginWith({})
+		local fader = context.Addon.Core.Fader
+
+		local target = CreateFrame("Frame", nil, UIParent)
+		target:EnableMouse(true)
+
+		fader:RegisterFade({
+			Target = target,
+			ShouldFade = function()
+				return true
+			end,
+		})
+
+		target:SetAlpha(1)
+		target:GetScript("OnLeave")(target)
+
+		local unrelated = CreateFrame("Frame", nil, UIParent)
+
+		WithGlobals({
+			GetMouseFoci = function()
+				return { unrelated }
+			end,
+		}, function()
+			WowMock.AdvanceTime(4)
+			WowMock.RunTimers()
+
+			fw.truthy(target.VuiFadeOut:IsPlaying(), "fade-out proceeded, nothing relevant was hovered")
+		end)
+	end)
+
+	fw.it("keeps the alpha where a fade-in reached when a fade-out interrupts it", function()
+		local context = LoginWith({})
+		local fader = context.Addon.Core.Fader
+
+		local target = CreateFrame("Frame", nil, UIParent)
+		target:EnableMouse(true)
+
+		fader:RegisterFade({
+			Target = target,
+			ShouldFade = function()
+				return true
+			end,
+		})
+
+		target:GetScript("OnEnter")(target)
+		fw.truthy(target.VuiFadeIn:IsPlaying(), "fade-in under way")
+
+		-- stands in for the fade-in having reached partway before something calls for a
+		-- fade-out; the mock does not animate alpha on its own
+		target:SetAlpha(0.4)
+
+		-- The mock's Stop() never touches alpha on its own, so this stands in for a real
+		-- animation group leaving the frame at a different alpha than where it was last read;
+		-- only the source's own restoring SetAlpha call can bring it back to 0.4 afterward.
+		local realStop = target.VuiFadeIn.Stop
+		target.VuiFadeIn.Stop = function(self, ...)
+			target:SetAlpha(0.9)
+			return realStop(self, ...)
+		end
+
+		fader:Refresh(true)
+
+		fw.falsy(target.VuiFadeIn:IsPlaying(), "fade-in was stopped")
+		fw.eq(target:GetAlpha(), 0.4, "alpha held where the fade-in reached rather than snapping")
 	end)
 end)
