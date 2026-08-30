@@ -8,7 +8,7 @@ local registry = addon.Core.Registry
 ---@class StatusBarsModule
 local M = registry:Add({
 	Key = "StatusTrackingBarManager",
-	Title = "XP and Reputation",
+	Title = "XP and Rep",
 	Tooltip = "Fade the XP and Reputation bars.",
 	Default = true,
 })
