@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.7.1
+
+UI improvements.
+
 ## 1.7.0
 
 Added fading for the action bars and the player frame, both of which fade only while out of combat and outside instances, and both off by default.
