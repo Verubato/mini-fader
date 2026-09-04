@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.8.1
+
+Each action bar now fades on its own, so hovering one brings back only that bar.
+
 ## 1.8.0
 
 Added individual action bar toggles.
