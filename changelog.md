@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.8.0
+
+Added individual action bar toggles.
+
+Fixed resetting to defaults leaving some settings behind.
+
 ## 1.7.1
 
 UI improvements.
