@@ -28,16 +28,39 @@ local function WithGlobals(overrides, fn)
 	end
 end
 
----Loads the addon with the given frame settings already saved, then logs it in.
-local function LoginWith(frames)
+-- the settings ids of the bars the mock builds a frame for
+local mockedBars = { "Bar2", "Bar3", "Bar4", "Bar5", "Stance", "Pet" }
+
+---Loads the addon with the given frame and option settings already saved, then logs it in.
+local function LoginWith(frames, options)
 	local context = harness.Load("MiniFader")
 
 	-- written before ADDON_LOADED, which is where the addon reads its saved variables
-	_G.MiniFaderDB = { Frames = frames }
+	_G.MiniFaderDB = { Frames = frames, Options = options }
 
 	harness.Login(context)
 
 	return context
+end
+
+---The action bar settings, with every bar the mock builds set to the same value.
+local function AllBars(enabled)
+	local bars = {}
+
+	for _, name in ipairs(mockedBars) do
+		bars[name] = enabled
+	end
+
+	return { ActionBars = bars }
+end
+
+---The panel checkbox with the given label.
+local function FindCheckbox(panel, labelText)
+	for _, control in ipairs(panel.MiniControls) do
+		if control.Text and control.Text:GetText() == labelText then
+			return control
+		end
+	end
 end
 
 local function EnterCombat()
@@ -52,7 +75,7 @@ end
 
 fw.describe("MiniFader - fading", function()
 	fw.it("fades the action bars out of combat and shows them in it", function()
-		LoginWith({ ActionBars = true })
+		LoginWith({}, AllBars(true))
 
 		fw.eq(MultiBarBottomLeft:GetAlpha(), 0, "bottom left bar alpha out of combat")
 
@@ -69,7 +92,7 @@ fw.describe("MiniFader - fading", function()
 	fw.it("finds a bar whose frame name has gone through its buttons", function()
 		local context = harness.Load("MiniFader")
 
-		_G.MiniFaderDB = { Frames = { ActionBars = true } }
+		_G.MiniFaderDB = { Options = { ActionBars = { Bar1 = true } } }
 
 		-- bar 1's frame is named differently per client version, so the mock has none of the
 		-- names the addon knows and only its buttons can lead back to it
@@ -83,7 +106,7 @@ fw.describe("MiniFader - fading", function()
 	end)
 
 	fw.it("keeps the action bars and player frame up inside an instance", function()
-		LoginWith({ ActionBars = true, PlayerFrame = true })
+		LoginWith({ PlayerFrame = true }, AllBars(true))
 
 		WowMock.State.InInstance = true
 		WowMock.State.InstanceType = "party"
@@ -94,7 +117,7 @@ fw.describe("MiniFader - fading", function()
 	end)
 
 	fw.it("leaves the action bars alone when the setting is off", function()
-		LoginWith({ ActionBars = false })
+		LoginWith({}, AllBars(false))
 
 		fw.eq(MultiBarBottomLeft:GetAlpha(), 1, "bottom left bar alpha")
 
@@ -105,7 +128,7 @@ fw.describe("MiniFader - fading", function()
 	end)
 
 	fw.it("eases the action bars away when combat ends rather than snapping them", function()
-		LoginWith({ ActionBars = true })
+		LoginWith({}, AllBars(true))
 		EnterCombat()
 		LeaveCombat()
 
@@ -114,13 +137,90 @@ fw.describe("MiniFader - fading", function()
 	end)
 
 	fw.it("stops a running fade-out when combat starts again", function()
-		LoginWith({ ActionBars = true })
+		LoginWith({}, AllBars(true))
 		EnterCombat()
 		LeaveCombat()
 		EnterCombat()
 
 		fw.falsy(MultiBarBottomLeft.VuiFadeOut:IsPlaying(), "fade out playing")
 		fw.eq(MultiBarBottomLeft:GetAlpha(), 1, "bottom left bar alpha")
+	end)
+
+	fw.it("fades only the action bars that are switched on", function()
+		LoginWith({}, { ActionBars = { Bar2 = true, Bar4 = false } })
+
+		fw.eq(MultiBarBottomLeft:GetAlpha(), 0, "bottom left bar alpha")
+		fw.eq(MultiBarRight:GetAlpha(), 1, "side bar alpha")
+		fw.not_nil(MultiBarRight.VuiFadeGroup, "side bar registered with a fade group")
+	end)
+
+	fw.it("brings back another enabled bar when one of them is hovered", function()
+		local context = harness.Load("MiniFader")
+
+		_G.MiniFaderDB = { Options = { ActionBars = { Bar2 = true, Bar4 = true } } }
+
+		-- the client's bars take mouse input, the mock's frames don't until they're told to
+		MultiBarBottomLeft:EnableMouse(true)
+
+		harness.Login(context)
+
+		fw.eq(MultiBarRight:GetAlpha(), 0, "side bar alpha before the hover")
+
+		MultiBarBottomLeft:GetScript("OnEnter")(MultiBarBottomLeft)
+
+		fw.truthy(MultiBarRight.VuiFadeIn:IsPlaying(), "side bar fading in")
+	end)
+
+	fw.it("carries the old single action bars setting onto every bar", function()
+		LoginWith({ ActionBars = true })
+
+		fw.eq(MultiBarBottomLeft:GetAlpha(), 0, "bottom left bar alpha")
+		fw.eq(PetActionBar:GetAlpha(), 0, "pet bar alpha")
+		fw.is_nil(_G.MiniFaderDB.Frames.ActionBars, "the setting the bars were migrated off")
+	end)
+
+	fw.it("shows a migrated action bar setting as checked on the options panel", function()
+		local context = LoginWith({ ActionBars = true })
+
+		local checkbox = FindCheckbox(context.Addon.Config.Panel, "Action bar 2")
+
+		fw.truthy(checkbox, "action bar checkbox found")
+		fw.truthy(checkbox:GetChecked(), "action bar checkbox checked")
+	end)
+
+	fw.it("fades the bar its checkbox names and leaves another bar alone", function()
+		local context = LoginWith({}, AllBars(false))
+
+		local checkbox = FindCheckbox(context.Addon.Config.Panel, "Action bar 4")
+
+		checkbox:Click()
+
+		fw.eq(MultiBarRight:GetAlpha(), 0, "action bar 4 alpha")
+		fw.eq(MultiBarBottomLeft:GetAlpha(), 1, "other bar alpha")
+	end)
+
+	fw.it("fades an action bar out again once a mouseover of it ends", function()
+		local context = harness.Load("MiniFader")
+
+		_G.MiniFaderDB = { Options = { ActionBars = { Bar2 = true, Bar4 = false } } }
+
+		MultiBarBottomLeft:EnableMouse(true)
+
+		harness.Login(context)
+
+		MultiBarBottomLeft:GetScript("OnEnter")(MultiBarBottomLeft)
+
+		-- the mock never finishes an animation, so stand in for the fade-in having completed
+		MultiBarBottomLeft.VuiFadeIn:Stop()
+		MultiBarBottomLeft:SetAlpha(1)
+
+		MultiBarBottomLeft:GetScript("OnLeave")(MultiBarBottomLeft)
+
+		WowMock.AdvanceTime(4)
+		WowMock.RunTimers()
+
+		fw.truthy(MultiBarBottomLeft.VuiFadeOut:IsPlaying(), "enabled bar fading out")
+		fw.eq(MultiBarRight:GetAlpha(), 1, "disabled bar alpha")
 	end)
 
 	fw.it("fades the player frame out of combat", function()

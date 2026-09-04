@@ -75,6 +75,17 @@ function M:Refresh()
 	end
 end
 
+---Migrates saved settings across every module, run before the options panel is built.
+function M:Migrate()
+	for i = 1, #modules do
+		local module = modules[i]
+
+		if module.Migrate then
+			module:Migrate()
+		end
+	end
+end
+
 function M:Init()
 	for i = 1, #modules do
 		local module = modules[i]
@@ -85,13 +96,15 @@ function M:Init()
 	end
 end
 
+---A module without a Key has no checkbox in the main grid, only a section of its own.
 ---@class FadeModule
----@field Key string the db.Frames key this module's setting lives under
----@field Title string the checkbox label in the options panel
----@field Tooltip string the checkbox tooltip
----@field Default boolean whether fading is on out of the box
+---@field Key string? the db.Frames key this module's setting lives under
+---@field Title string? the checkbox label in the options panel
+---@field Tooltip string? the checkbox tooltip
+---@field Default boolean? whether fading is on out of the box
 ---@field Defaults table? further saved variable defaults, merged into the root
 ---@field Options FadeModuleOptions? a settings section of the module's own
+---@field Migrate fun(self: FadeModule)? runs on the saved variables before the options panel is built
 ---@field Init fun(self: FadeModule)? one-off setup, run once the saved variables are up
 ---@field Register fun(self: FadeModule)? hands its frames to the fader, run on each loading screen
 ---@field Refresh fun(self: FadeModule)? re-reads settings, run after any config change

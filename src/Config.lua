@@ -49,7 +49,9 @@ local function Defaults()
 	for i = 1, #modules do
 		local module = modules[i]
 
-		defaults.Frames[module.Key] = module.Default
+		if module.Key then
+			defaults.Frames[module.Key] = module.Default
+		end
 
 		if module.Defaults then
 			mini:CopyTable(module.Defaults, defaults)
@@ -59,7 +61,7 @@ local function Defaults()
 	return defaults
 end
 
----One checkbox per module, in the order the toc loaded them.
+---One checkbox per module that has a main setting, in the order the toc loaded them.
 ---@return CheckboxOptions[]
 local function MainSettings(panel)
 	local settings = {}
@@ -68,17 +70,19 @@ local function MainSettings(panel)
 	for i = 1, #modules do
 		local module = modules[i]
 
-		settings[#settings + 1] = {
-			Parent = panel,
-			LabelText = module.Title,
-			Tooltip = module.Tooltip,
-			GetValue = function()
-				return registry:IsEnabled(module.Key)
-			end,
-			SetValue = function(enabled)
-				registry:SetEnabled(module.Key, enabled)
-			end,
-		}
+		if module.Key then
+			settings[#settings + 1] = {
+				Parent = panel,
+				LabelText = module.Title,
+				Tooltip = module.Tooltip,
+				GetValue = function()
+					return registry:IsEnabled(module.Key)
+				end,
+				SetValue = function(enabled)
+					registry:SetEnabled(module.Key, enabled)
+				end,
+			}
+		end
 	end
 
 	return settings
@@ -119,6 +123,8 @@ function M:Init()
 
 	mini:GetSavedVars(Defaults())
 
+	registry:Migrate()
+
 	local panel = CreateFrame("Frame")
 	panel.name = addonName
 
@@ -127,6 +133,8 @@ function M:Init()
 	if not category then
 		return
 	end
+
+	M.Panel = panel
 
 	local header = mini:PanelHeader({
 		Parent = panel,

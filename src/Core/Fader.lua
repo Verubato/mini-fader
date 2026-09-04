@@ -121,7 +121,7 @@ local function ScheduleFadeOut(group, timeUntilFadeOut)
 		for i = 1, #group.Targets do
 			local target = group.Targets[i]
 
-			if not target.VuiShouldFade or target.VuiShouldFade() then
+			if not target.VuiShouldFade or target.VuiShouldFade(target) then
 				FadeOut(target)
 			end
 		end
@@ -253,7 +253,7 @@ local function SetupTarget(target, group, options)
 	group.Targets[#group.Targets + 1] = target
 	targets[#targets + 1] = target
 
-	if not options.ShouldFade or options.ShouldFade() then
+	if not options.ShouldFade or options.ShouldFade(target) then
 		target:SetAlpha(0)
 	else
 		target:SetAlpha(target.VuiFadeInAlpha)
@@ -287,7 +287,7 @@ function M:Refresh(animate)
 		local shouldFade = target.VuiShouldFade
 
 		if shouldFade then
-			if not shouldFade() then
+			if not shouldFade(target) then
 				-- a frame that has stopped fading has to show now, mid-animation or not:
 				-- combat starts this way, and a running fade-out would hide it again
 				StopAnimationPreserveAlpha(target, target.VuiFadeIn)
@@ -368,5 +368,5 @@ eventsFrame:SetScript("OnEvent", OnEvent)
 ---@field FadeOutDuration number? number in seconds it takes to fade out.
 ---@field IncludeChildren boolean|number? listen for children frame mouse events, true for one level deep or a number of levels.
 ---@field EnableMouse boolean? true by default, false means the mouse frame won't be configured for interactivity.
----@field ShouldFade fun(): boolean? a predicate to determine if the target should fade in.
+---@field ShouldFade fun(target: table): boolean? a predicate, asked per target, of whether it should fade.
 ---@field Events table? a list of events that trigger state changes to ShouldFade

@@ -13,7 +13,7 @@ combat and outside instances.
 
 | Item | Value |
 |---|---|
-| Version | 1.7.0 |
+| Version | 1.7.1 |
 | Interface versions (.toc) | 120100 (retail only: Midnight 12.1) |
 | Saved variables | MiniFaderDB, account wide (settings shared across characters) |
 | Slash commands | /fade, /minifade, /minifader, /mfade, /mfader (all open the settings panel) |
@@ -31,7 +31,7 @@ combat and outside instances.
 - A frame that stops fading because the game changed (combat starting, a loading screen)
   appears instantly; one that starts fading for the same reason eases out over 1 second
   instead of snapping, unless the mouse is on it.
-- Some frames fade as a set: hovering any one action bar brings all of them back.
+- Some frames fade as a set: hovering any one action bar brings back the enabled ones.
 - Faded frames still occupy their screen position; hover where the frame normally is to
   bring it back.
 - Frames are picked up once on loading screen entry; a frame that does not exist on your
@@ -51,7 +51,6 @@ Section "Main" (all checkboxes):
 | Raid manager | ON | CompactRaidFrameManager flyout on the left screen edge | "Fade the raid manager flyout (left of screen flyout menu)." |
 | Buffs button | OFF | The collapse/expand arrow next to buffs | "Fade the collapse/expand buffs arrow button." |
 | Damage meter | OFF | Blizzard damage meter windows | "Fade the Blizzard damage meter." |
-| Action bars | OFF | All the default action bars, out of combat and outside instances only | "Fade the action bars while out of combat and outside instances." |
 | Player frame | OFF | The player's health/power frame, out of combat and outside instances only | "Fade the player's health and power bars while out of combat and outside instances." |
 
 Section "Objective Tracker Options":
@@ -60,6 +59,11 @@ Section "Objective Tracker Options":
 |---|---|---|
 | Fade in PvP | ON | Also fade the objective tracker inside battlegrounds and arenas |
 | Fade in PvE | OFF | Also fade the objective tracker inside dungeons/raids/other PvE instances |
+
+Section "Action Bars", one checkbox per bar, all OFF by default. Each fades that bar out of
+combat and outside instances only. UI labels: "Action bar 1" through "Action bar 8", then
+"Stance bar", "Pet bar", and "Possess bar". Tooltip is "Fade <label in lower case> while out
+of combat and outside instances."
 
 ## Per-frame behaviour details
 
@@ -81,12 +85,14 @@ Section "Objective Tracker Options":
   could otherwise leave icons invisible after fast mouse movements (fixed in 1.5.0).
 - Objective tracker and XP bars have mouse interactivity enabled by the addon so hover
   can be detected.
-- Action bars: all eight action bars plus the stance, pet and possess bars. Each is found by
-  frame name (MainActionBar on 12.1, MainMenuBar before that), or through the frame its
-  buttons hang off when the client has none of the names it knows. They show the moment combat starts and fade again when it ends. They fade as one group, so hovering any bar (or any button on it)
-  brings the whole set back, which matters for bars stacked on top of each other. Mouse
-  interactivity is not added: the buttons already have it, so clicks still pass through the
-  empty parts of a bar.
+- Action bars: all eight action bars plus the stance, pet, and possess bars, each with its
+  own checkbox rather than one for the lot. Each is found by frame name (MainActionBar on
+  12.1, MainMenuBar before that), or through the frame its buttons hang off when the client
+  has none of the names it knows. They show the moment combat starts and fade again when it
+  ends. Every bar fades as one group whatever its checkbox says, so hovering any bar (or any
+  button on it) brings back the rest of the enabled ones, which matters for bars stacked on
+  top of each other. Mouse interactivity is not added: the buttons already have it, so clicks
+  still pass through the empty parts of a bar.
 - Player frame: fades outside combat and outside instances, and shows instantly when combat
   starts. The pet frame fades with it because it is part of the player frame.
 - Minimap: not supported. Its blips and location icons are drawn by the client rather than
@@ -102,8 +108,8 @@ Section "Objective Tracker Options":
   under "Objective Tracker Options".
 - "The damage meter doesn't fade in raids/dungeons": intentional; the damage meter only
   fades outside instances.
-- "My action bars vanish out of combat": that is the "Action bars" setting; they come back
-  in combat or on mouseover. Untick it to stop.
+- "My action bars vanish out of combat": that is that bar's checkbox under "Action Bars";
+  they come back in combat or on mouseover. Untick it to stop.
 - "The action bars don't fade in combat, or in a dungeon/raid/battleground": intentional; the
   action bars and player frame only fade out of combat and outside instances.
 - "A frame isn't fading at all": confirm its checkbox is on in /fade; the addon only hooks
