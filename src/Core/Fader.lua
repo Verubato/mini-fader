@@ -10,6 +10,24 @@ local targets = {}
 local M = {}
 addon.Core.Fader = M
 
+---Whether a mouse frame wakes a group right now. A target that is not fading, because its
+---setting is off or combat holds it up, must not bring back the ones that are.
+local function WakesGroup(mouseFrame, group)
+	local focusGroups = mouseFrame.VuiFocusGroups
+	local owner = focusGroups and focusGroups[group]
+
+	if not owner then
+		return false
+	end
+
+	-- a hover frame the caller supplied covers the whole group rather than one target
+	if owner == true then
+		return true
+	end
+
+	return not owner.VuiShouldFade or owner.VuiShouldFade(owner)
+end
+
 ---Whether anything belonging to a fade group is under the mouse.
 local function AnyHasFocus(group)
 	-- walk up the parent tree and see if anything has focus
@@ -25,7 +43,7 @@ local function AnyHasFocus(group)
 	while next do
 		-- a frame can wake several groups, such as the chat window behind both the chat
 		-- background and the chat buttons, so ask whether it wakes this one
-		if next.VuiHasFocus and next.VuiFocusGroups and next.VuiFocusGroups[group] then
+		if next.VuiHasFocus and WakesGroup(next, group) then
 			return true
 		end
 
@@ -140,7 +158,13 @@ local function ScheduleFadeOut(group, timeUntilFadeOut)
 end
 
 local function OnEnter(mouseFrame, group)
+	-- set before the guard, or a frame hovered while combat holds it up fades out from under
+	-- the cursor the moment combat ends
 	mouseFrame.VuiHasFocus = true
+
+	if not WakesGroup(mouseFrame, group) then
+		return
+	end
 
 	CancelFadeOutTimer(group)
 
@@ -150,7 +174,13 @@ local function OnEnter(mouseFrame, group)
 end
 
 local function OnLeave(mouseFrame, group, timeUntilFadeOut)
+	-- cleared before the guard, or a bar switched off under the mouse strands the flag true
 	mouseFrame.VuiHasFocus = false
+
+	if not WakesGroup(mouseFrame, group) then
+		return
+	end
+
 	group.LastLeft = GetTime()
 
 	ScheduleFadeOut(group, timeUntilFadeOut)
@@ -158,16 +188,25 @@ end
 
 ---@param depth number how many levels of children also count as hover targets
 ---@param options FadeOptions
-local function WatchFrame(mouseFrame, group, depth, options)
-	if group.MouseFrames[mouseFrame] then
+---@param owner table? the target these hover frames belong to, nil for a caller's own MouseFrame
+local function WatchFrame(mouseFrame, group, depth, options, owner)
+	local watched = group.MouseFrames[mouseFrame]
+
+	local focusGroups = mouseFrame.VuiFocusGroups or {}
+
+	-- a target the child walk of an earlier target reached first takes its slot back, or its
+	-- own hover would ask that other target's ShouldFade
+	if not watched or owner == mouseFrame then
+		focusGroups[group] = owner or true
+	end
+
+	mouseFrame.VuiFocusGroups = focusGroups
+
+	if watched then
 		return
 	end
 
 	group.MouseFrames[mouseFrame] = true
-
-	local focusGroups = mouseFrame.VuiFocusGroups or {}
-	focusGroups[group] = true
-	mouseFrame.VuiFocusGroups = focusGroups
 
 	-- don't enable interactivity if told not to
 	-- as this will intercept mouse events and prevent them from going to lower stack frames
@@ -188,7 +227,7 @@ local function WatchFrame(mouseFrame, group, depth, options)
 		local children = { mouseFrame:GetChildren() }
 
 		for _, child in ipairs(children) do
-			WatchFrame(child, group, depth - 1, options)
+			WatchFrame(child, group, depth - 1, options, owner)
 		end
 	end
 end
@@ -306,7 +345,7 @@ function M:Refresh(animate)
 end
 
 ---Registers one or more frames to be faded. Frames registered together fade as one, so
----hovering any of them brings back the whole set.
+---hovering one that is fading brings back the whole set.
 ---@param options FadeOptions
 function M:RegisterFade(options)
 	local groupTargets = options.Targets or { options.Target }
@@ -335,7 +374,7 @@ function M:RegisterFade(options)
 		-- child the client only builds later still gets hooked; WatchFrame skips whatever this
 		-- group already watches.
 		if not options.MouseFrame then
-			WatchFrame(target, group, depth, options)
+			WatchFrame(target, group, depth, options, target)
 		end
 	end
 

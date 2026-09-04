@@ -31,7 +31,8 @@ combat and outside instances.
 - A frame that stops fading because the game changed (combat starting, a loading screen)
   appears instantly; one that starts fading for the same reason eases out over 1 second
   instead of snapping, unless the mouse is on it.
-- Some frames fade as a set: hovering any one action bar brings back the enabled ones.
+- Some frames fade as a set: hovering any one action bar that is currently fading brings back
+  the other enabled ones.
 - Faded frames still occupy their screen position; hover where the frame normally is to
   bring it back.
 - Frames are picked up once on loading screen entry; a frame that does not exist on your
@@ -89,10 +90,11 @@ of combat and outside instances."
   own checkbox rather than one for the lot. Each is found by frame name (MainActionBar on
   12.1, MainMenuBar before that), or through the frame its buttons hang off when the client
   has none of the names it knows. They show the moment combat starts and fade again when it
-  ends. Every bar fades as one group whatever its checkbox says, so hovering any bar (or any
-  button on it) brings back the rest of the enabled ones, which matters for bars stacked on
-  top of each other. Mouse interactivity is not added: the buttons already have it, so clicks
-  still pass through the empty parts of a bar.
+  ends. Every bar belongs to one group whatever its checkbox says, so hovering a bar that is
+  fading (or any button on it) brings back the rest of the enabled ones, which matters for
+  bars stacked on top of each other. A bar that is not fading, because its checkbox is off or
+  because combat holds it up, brings nothing back. Mouse interactivity is not added: the
+  buttons already have it, so clicks still pass through the empty parts of a bar.
 - Player frame: fades outside combat and outside instances, and shows instantly when combat
   starts. The pet frame fades with it because it is part of the player frame.
 - Minimap: not supported. Its blips and location icons are drawn by the client rather than
