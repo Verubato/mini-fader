@@ -154,7 +154,7 @@ fw.describe("MiniFader - fading", function()
 		fw.not_nil(MultiBarRight.VuiFadeGroup, "side bar registered with a fade group")
 	end)
 
-	fw.it("brings back another enabled bar when one of them is hovered", function()
+	fw.it("brings back only the bar the mouse is on", function()
 		local context = harness.Load("MiniFader")
 
 		_G.MiniFaderDB = { Options = { ActionBars = { Bar2 = true, Bar4 = true } } }
@@ -168,27 +168,14 @@ fw.describe("MiniFader - fading", function()
 
 		MultiBarBottomLeft:GetScript("OnEnter")(MultiBarBottomLeft)
 
-		fw.truthy(MultiBarRight.VuiFadeIn:IsPlaying(), "side bar fading in")
-	end)
-
-	fw.it("does not bring an enabled bar back when a bar that never fades is hovered", function()
-		local context = harness.Load("MiniFader")
-
-		_G.MiniFaderDB = { Options = { ActionBars = { Bar2 = false, Bar4 = true } } }
-
-		MultiBarBottomLeft:EnableMouse(true)
-
-		harness.Login(context)
-
-		MultiBarBottomLeft:GetScript("OnEnter")(MultiBarBottomLeft)
-
+		fw.truthy(MultiBarBottomLeft.VuiFadeIn:IsPlaying(), "hovered bar fading in")
 		fw.falsy(MultiBarRight.VuiFadeIn:IsPlaying(), "side bar fading in")
 	end)
 
-	fw.it("does not bring an enabled bar back when a button on a bar that never fades is hovered", function()
+	fw.it("brings back only the bar a hovered button sits on", function()
 		local context = harness.Load("MiniFader")
 
-		_G.MiniFaderDB = { Options = { ActionBars = { Bar2 = false, Bar4 = true } } }
+		_G.MiniFaderDB = { Options = { ActionBars = { Bar2 = true, Bar4 = true } } }
 
 		-- the mock hangs its action buttons off UIParent, so stand a child on the bar itself
 		local button = CreateFrame("Button", nil, MultiBarBottomLeft)
@@ -201,32 +188,28 @@ fw.describe("MiniFader - fading", function()
 		-- answer for the bar that owns it
 		button:GetScript("OnEnter")(button)
 
+		fw.truthy(MultiBarBottomLeft.VuiFadeIn:IsPlaying(), "hovered button's bar fading in")
 		fw.falsy(MultiBarRight.VuiFadeIn:IsPlaying(), "side bar fading in")
 	end)
 
-	fw.it("keeps fading an enabled bar out while the mouse rests on one the player just switched off", function()
+	fw.it("fades one bar out while the mouse rests on another", function()
 		local context = harness.Load("MiniFader")
 
-		_G.MiniFaderDB = { Options = { ActionBars = { Bar2 = true, Bar4 = true } } }
+		_G.MiniFaderDB = { Options = { ActionBars = { Bar2 = false, Bar4 = true } } }
 
 		MultiBarBottomLeft:EnableMouse(true)
 		MultiBarRight:EnableMouse(true)
 
 		harness.Login(context)
 
-		-- the mouse arrives while both bars still fade, so the hovered one takes the focus flag
 		MultiBarBottomLeft:GetScript("OnEnter")(MultiBarBottomLeft)
 
-		-- what unticking the hovered bar does, without the mouse ever moving off it
-		_G.MiniFaderDB.Options.ActionBars.Bar2 = false
-
-		-- the mock never finishes an animation, so stand in for the fade-ins having completed
-		MultiBarBottomLeft.VuiFadeIn:Stop()
-		MultiBarRight.VuiFadeIn:Stop()
+		-- the mock never finishes an animation, so stand in for a completed fade-in
 		MultiBarRight:SetAlpha(1)
 
 		MultiBarRight:GetScript("OnLeave")(MultiBarRight)
 
+		-- the mouse stays on a bar of its own, which must not answer for this one
 		WithGlobals({
 			GetMouseFoci = function()
 				return { MultiBarBottomLeft }
@@ -235,37 +218,33 @@ fw.describe("MiniFader - fading", function()
 			WowMock.AdvanceTime(4)
 			WowMock.RunTimers()
 
-			fw.truthy(MultiBarRight.VuiFadeOut:IsPlaying(), "enabled bar fading out")
+			fw.truthy(MultiBarRight.VuiFadeOut:IsPlaying(), "other bar fading out")
 		end)
 	end)
 
-	fw.it("stops holding the group up once the mouse leaves a bar the player switched off", function()
+	fw.it("fades a bar again after it was switched off under the mouse and back on", function()
 		local context = harness.Load("MiniFader")
 
-		_G.MiniFaderDB = { Options = { ActionBars = { Bar2 = true, Bar4 = true } } }
+		_G.MiniFaderDB = { Options = { ActionBars = { Bar2 = true } } }
 
 		MultiBarBottomLeft:EnableMouse(true)
-		MultiBarRight:EnableMouse(true)
 
 		harness.Login(context)
 
 		MultiBarBottomLeft:GetScript("OnEnter")(MultiBarBottomLeft)
 
-		-- unticked while the mouse is still on it, so its leave takes the guarded path
+		-- unticked while the mouse is still on it
 		_G.MiniFaderDB.Options.ActionBars.Bar2 = false
 
 		MultiBarBottomLeft:GetScript("OnLeave")(MultiBarBottomLeft)
 
-		-- ticked again, so a focus flag left behind by that leave is the only thing that can
-		-- still hold the group up
+		-- ticked again, so a focus flag left behind by that leave is the only thing that could
+		-- still hold the bar up
 		_G.MiniFaderDB.Options.ActionBars.Bar2 = true
 
-		-- the mock never finishes an animation, so stand in for the fade-ins having completed
+		-- the mock never finishes an animation, so stand in for the fade-in having completed
 		MultiBarBottomLeft.VuiFadeIn:Stop()
-		MultiBarRight.VuiFadeIn:Stop()
-		MultiBarRight:SetAlpha(1)
-
-		MultiBarRight:GetScript("OnLeave")(MultiBarRight)
+		MultiBarBottomLeft:SetAlpha(1)
 
 		WithGlobals({
 			-- a stranded flag only shows up on a frame the client still lists under the cursor
@@ -276,7 +255,7 @@ fw.describe("MiniFader - fading", function()
 			WowMock.AdvanceTime(4)
 			WowMock.RunTimers()
 
-			fw.truthy(MultiBarRight.VuiFadeOut:IsPlaying(), "enabled bar fading out")
+			fw.truthy(MultiBarBottomLeft.VuiFadeOut:IsPlaying(), "bar fading out")
 		end)
 	end)
 
@@ -302,36 +281,6 @@ fw.describe("MiniFader - fading", function()
 			LeaveCombat()
 
 			fw.falsy(MultiBarBottomLeft.VuiFadeOut:IsPlaying(), "hovered bar fading out")
-		end)
-	end)
-
-	fw.it("fades an enabled bar out while the mouse rests on a bar that never fades", function()
-		local context = harness.Load("MiniFader")
-
-		_G.MiniFaderDB = { Options = { ActionBars = { Bar2 = false, Bar4 = true } } }
-
-		MultiBarBottomLeft:EnableMouse(true)
-		MultiBarRight:EnableMouse(true)
-
-		harness.Login(context)
-
-		-- the flag is set whatever the checkbox says; nothing checks it until the timer fires
-		MultiBarBottomLeft:GetScript("OnEnter")(MultiBarBottomLeft)
-
-		-- the mock never finishes an animation, so stand in for a completed fade-in
-		MultiBarRight:SetAlpha(1)
-
-		MultiBarRight:GetScript("OnLeave")(MultiBarRight)
-
-		WithGlobals({
-			GetMouseFoci = function()
-				return { MultiBarBottomLeft }
-			end,
-		}, function()
-			WowMock.AdvanceTime(4)
-			WowMock.RunTimers()
-
-			fw.truthy(MultiBarRight.VuiFadeOut:IsPlaying(), "enabled bar fading out")
 		end)
 	end)
 
@@ -583,30 +532,6 @@ fw.describe("MiniFader - fading", function()
 		hover:GetScript("OnEnter")(hover)
 
 		fw.truthy(target.VuiFadeIn:IsPlaying(), "target fading in")
-	end)
-
-	fw.it("asks a target's own ShouldFade when it sits inside another target of the same group", function()
-		local context = LoginWith({})
-		local fader = context.Addon.Core.Fader
-
-		local outer = CreateFrame("Frame", nil, UIParent)
-		local inner = CreateFrame("Frame", nil, outer)
-
-		inner:EnableMouse(true)
-
-		fader:RegisterFade({
-			Targets = { outer, inner },
-			IncludeChildren = 1,
-			ShouldFade = function(target)
-				return target == outer
-			end,
-		})
-
-		-- outer's child walk reaches inner first, and inner is not fading, so its hover must
-		-- not bring outer back
-		inner:GetScript("OnEnter")(inner)
-
-		fw.falsy(outer.VuiFadeIn:IsPlaying(), "outer frame fading in")
 	end)
 
 	fw.it("schedules a single fade-out timer for a group even when more than one of its frames leaves", function()
