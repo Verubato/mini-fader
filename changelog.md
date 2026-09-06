@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.9.0
+
+The action bars now fade inside instances as well as outside them.
+
 ## 1.8.1
 
 Each action bar now fades on its own, so hovering one brings back only that bar.
