@@ -31,7 +31,7 @@ for _, bar in ipairs(actionBars) do
 	barDefaults[id] = false
 	barSettings[#barSettings + 1] = {
 		LabelText = bar.Label,
-		Tooltip = "Fade " .. bar.Label:lower() .. " while out of combat and outside instances.",
+		Tooltip = "Fade " .. bar.Label:lower() .. " while out of combat.",
 		GetValue = function()
 			return registry:Vars().Options.ActionBars[id]
 		end,
@@ -88,7 +88,7 @@ function M:Register()
 				-- holds them a level further down, so go two deep rather than one
 				IncludeChildren = 2,
 				ShouldFade = function()
-					return registry:Vars().Options.ActionBars[id] and not InCombatLockdown() and not IsInInstance()
+					return registry:Vars().Options.ActionBars[id] and not InCombatLockdown()
 				end,
 				Events = combatAndZoneEvents,
 			})

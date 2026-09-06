@@ -6,8 +6,8 @@ MiniFader hides (fades out) selected pieces of the default Blizzard UI and fades
 in when you mouse over them, for a cleaner, minimal UI. Supported frames: bags bar, micro
 menu, objective/quest tracker, raid manager flyout, XP and reputation bars, the buffs
 collapse/expand arrow, chat tabs/buttons/background, Blizzard's damage meter windows, the
-action bars, and the player frame. The action bars and player frame only fade while out of
-combat and outside instances.
+action bars, and the player frame. The action bars only fade while out of combat, and the
+player frame only while out of combat and outside instances.
 
 ## Facts
 
@@ -61,9 +61,8 @@ Section "Objective Tracker Options":
 | Fade in PvE | OFF | Also fade the objective tracker inside dungeons/raids/other PvE instances |
 
 Section "Action Bars", one checkbox per bar, all OFF by default. Each fades that bar out of
-combat and outside instances only. UI labels: "Action bar 1" through "Action bar 8", then
-"Stance bar", "Pet bar", and "Possess bar". Tooltip is "Fade <label in lower case> while out
-of combat and outside instances."
+combat only. UI labels: "Action bar 1" through "Action bar 8", then "Stance bar", "Pet bar",
+and "Possess bar". Tooltip is "Fade <label in lower case> while out of combat."
 
 ## Per-frame behaviour details
 
@@ -109,8 +108,10 @@ of combat and outside instances."
   fades outside instances.
 - "My action bars vanish out of combat": that is that bar's checkbox under "Action Bars";
   they come back in combat or on mouseover. Untick it to stop.
-- "The action bars don't fade in combat, or in a dungeon/raid/battleground": intentional; the
-  action bars and player frame only fade out of combat and outside instances.
+- "The action bars don't fade in combat": intentional; the action bars only fade out of
+  combat.
+- "The player frame doesn't fade in a dungeon/raid/battleground": intentional; the player
+  frame only fades out of combat and outside instances.
 - "A frame isn't fading at all": confirm its checkbox is on in /fade; the addon only hooks
   frames that exist when you first enter the world, so a frame created later by another
   addon or a UI reload mid-session may need a /reload. Also note MiniFader targets the

@@ -105,14 +105,27 @@ fw.describe("MiniFader - fading", function()
 		fw.eq(bar:GetAlpha(), 0, "derived bar alpha")
 	end)
 
-	fw.it("keeps the action bars and player frame up inside an instance", function()
-		LoginWith({ PlayerFrame = true }, AllBars(true))
+	fw.it("fades the action bars inside an instance and shows them in combat there", function()
+		LoginWith({}, AllBars(true))
 
 		WowMock.State.InInstance = true
 		WowMock.State.InstanceType = "party"
 		WowMock.FireEvent("PLAYER_ENTERING_WORLD")
 
-		fw.eq(MultiBarBottomLeft:GetAlpha(), 1, "bottom left bar alpha in an instance")
+		fw.eq(MultiBarBottomLeft:GetAlpha(), 0, "bottom left bar alpha in an instance")
+
+		EnterCombat()
+
+		fw.eq(MultiBarBottomLeft:GetAlpha(), 1, "bottom left bar alpha in combat in an instance")
+	end)
+
+	fw.it("keeps the player frame up inside an instance", function()
+		LoginWith({ PlayerFrame = true }, AllBars(false))
+
+		WowMock.State.InInstance = true
+		WowMock.State.InstanceType = "party"
+		WowMock.FireEvent("PLAYER_ENTERING_WORLD")
+
 		fw.eq(PlayerFrame:GetAlpha(), 1, "player frame alpha in an instance")
 	end)
 

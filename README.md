@@ -14,7 +14,7 @@ Currently supported frames include:
 - Collapse/expand buffs arrow.
 - Chat tabs and icons.
 - Blizzard's damage meters.
-- Action bars, outside combat and instances.
+- Action bars, outside combat.
 - Player frame, outside combat and instances.
 - More to come!
 
