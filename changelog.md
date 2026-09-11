@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.9.1
+
+Fixed a secret value error in the client's chat tab fade. The chat tabs now show after the client's own short delay rather than instantly.
+
+Fixed an error when the ping listener sat under the mouse.
+
 ## 1.9.0
 
 The action bars now fade inside instances as well as outside them.

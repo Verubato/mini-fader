@@ -371,12 +371,106 @@ fw.describe("MiniFader - fading", function()
 		_G.MiniFaderDB.Frames.Chat = false
 		context.Addon.Core.Registry:Refresh()
 
-		fw.eq(ChatFrame2Tab:GetAlpha(), 0.2, "second tab alpha after")
+		-- back to the alpha the client rests the tab at, which the mock sets to 0.4
+		fw.eq(ChatFrame2Tab:GetAlpha(), 0.4, "second tab alpha after")
 
 		-- the client updating tab alpha must not put the fade back
 		FCFTab_UpdateAlpha(ChatFrame2)
 
-		fw.eq(ChatFrame2Tab:GetAlpha(), 0.2, "second tab alpha after a client update")
+		fw.eq(ChatFrame2Tab:GetAlpha(), 0.4, "second tab alpha after a client update")
+	end)
+
+	fw.it("leaves the client's chat tab fields and show delay alone", function()
+		-- the client's fade reads both, and a value written by an addon taints that read,
+		-- after which the tab's alpha comes back as a secret the fade can't do sums on
+		local context = harness.Load("MiniFader")
+
+		-- loading resets the mock's globals, so the client's own value goes in after it
+		_G.CHAT_TAB_SHOW_DELAY = 0.2
+		_G.MiniFaderDB = { Frames = { Chat = true } }
+
+		harness.Login(context)
+
+		fw.eq(ChatFrame2Tab.noMouseAlpha, 0.4, "resting alpha field with fading on")
+		fw.eq(CHAT_TAB_SHOW_DELAY, 0.2, "show delay with fading on")
+
+		_G.MiniFaderDB.Frames.Chat = false
+		context.Addon.Core.Registry:Refresh()
+
+		fw.eq(ChatFrame2Tab.noMouseAlpha, 0.4, "resting alpha field with fading off")
+		fw.eq(CHAT_TAB_SHOW_DELAY, 0.2, "show delay with fading off")
+	end)
+
+	fw.it("keeps a hovered chat tab at the alpha the client gave it", function()
+		LoginWith({ Chat = true })
+
+		ChatFrame2.hasBeenFaded = true
+		ChatFrame2Tab:SetAlpha(0.6)
+
+		FCFTab_UpdateAlpha(ChatFrame2)
+
+		fw.eq(ChatFrame2Tab:GetAlpha(), 0.6, "hovered tab alpha after a client update")
+
+		ChatFrame2.hasBeenFaded = nil
+	end)
+
+	fw.it("fades a chat tab the rest of the way out once the client's own fade has landed", function()
+		local context = harness.Load("MiniFader")
+
+		-- the mock has no chat fade of its own, so stand in for the client's before the addon
+		-- hooks it at ADDON_LOADED
+		_G.CHAT_FRAME_FADE_OUT_TIME = 2
+		_G.FCF_FadeOutChatFrame = function(chatFrame)
+			chatFrame.hasBeenFaded = nil
+		end
+		_G.FCF_FadeInChatFrame = function(chatFrame)
+			chatFrame.hasBeenFaded = true
+		end
+		_G.MiniFaderDB = { Frames = { Chat = true } }
+
+		harness.Login(context)
+
+		FCF_FadeOutChatFrame(ChatFrame2)
+
+		-- the client's own fade has the tab for the next two seconds
+		fw.falsy(ChatFrame2Tab.MiniFaderFadeOut, "our fade-out before the timer")
+
+		WowMock.RunTimers()
+
+		fw.truthy(ChatFrame2Tab.MiniFaderFadeOut:IsPlaying(), "our fade-out running after the client's")
+
+		-- the mouse coming back hands the tab to the client's fade-in
+		FCF_FadeInChatFrame(ChatFrame2)
+
+		fw.falsy(ChatFrame2Tab.MiniFaderFadeOut:IsPlaying(), "our fade-out stopped by the client's fade-in")
+
+		-- a fade-out whose timer fires after the mouse has come back does nothing
+		FCF_FadeOutChatFrame(ChatFrame2)
+		FCF_FadeInChatFrame(ChatFrame2)
+		WowMock.RunTimers()
+
+		fw.falsy(ChatFrame2Tab.MiniFaderFadeOut:IsPlaying(), "no fade-out for a hovered tab")
+
+		-- a leave, a return, and a second leave: the first timer must not fire over the client's
+		-- second fade, which is still running when it would have gone off
+		FCF_FadeOutChatFrame(ChatFrame2)
+		FCF_FadeInChatFrame(ChatFrame2)
+		FCF_FadeOutChatFrame(ChatFrame2)
+
+		fw.eq(WowMock.RunTimers(1), 1, "one timer left after a second fade-out")
+	end)
+
+	fw.it("leaves a hovered chat tab alone on a loading screen", function()
+		local context = LoginWith({ Chat = true })
+
+		ChatFrame2.hasBeenFaded = true
+		ChatFrame2Tab:SetAlpha(0.6)
+
+		context.Addon.Core.Registry:Refresh()
+
+		fw.eq(ChatFrame2Tab:GetAlpha(), 0.6, "hovered tab alpha after a refresh")
+
+		ChatFrame2.hasBeenFaded = nil
 	end)
 
 	fw.it("ignores a forbidden frame under the mouse", function()

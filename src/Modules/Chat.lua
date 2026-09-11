@@ -29,12 +29,56 @@ local function ChatBackground(chatFrame, existingBg, alpha)
 	return bg
 end
 
+---The alpha the client rests an unhovered tab at. Writing it taints the client's fade, which
+---then reads the tab's alpha back as a secret it can't do sums on.
+local function RestingAlpha(chatTab)
+	-- what the client gives a docked tab that isn't selected
+	return chatTab.noMouseAlpha or 0.2
+end
+
+---Eases a tab from the client's resting alpha down to nothing.
+local function FadeTabOut(chatFrame, chatTab)
+	local ag = chatTab.MiniFaderFadeOut
+
+	if not ag then
+		ag = chatTab:CreateAnimationGroup()
+		local fade = ag:CreateAnimation("Alpha")
+		ag.Fade = fade
+
+		fade:SetDuration(0.5)
+		fade:SetToAlpha(0)
+		fade:SetSmoothing("IN_OUT")
+
+		ag:SetScript("OnFinished", function()
+			-- the mouse may have come back while this ran
+			if not chatFrame.hasBeenFaded then
+				chatTab:SetAlpha(0)
+			end
+		end)
+
+		chatTab.MiniFaderFadeOut = ag
+	end
+
+	-- GetAlpha on a chat tab hands addon code a secret, so start from where the client left it
+	ag.Fade:SetFromAlpha(RestingAlpha(chatTab))
+	ag:Play()
+end
+
+local function StopTabFadeOut(chatTab)
+	if chatTab.MiniFaderFadeOutTimer then
+		chatTab.MiniFaderFadeOutTimer:Cancel()
+		chatTab.MiniFaderFadeOutTimer = nil
+	end
+
+	if chatTab.MiniFaderFadeOut and chatTab.MiniFaderFadeOut:IsPlaying() then
+		chatTab.MiniFaderFadeOut:Stop()
+	end
+end
+
 function M:Refresh()
 	local tab = 1
 	local chatFrame = _G["ChatFrame" .. tab]
 	local fade = registry:IsEnabled(M.Key)
-	-- 0.2 is what Blizzard rests an unfocused tab at
-	local tabAlpha = fade and 0 or 0.2
 
 	while chatFrame ~= nil do
 		local bottomTexture = _G["ChatFrame" .. tab .. "BottomTexture"]
@@ -86,18 +130,18 @@ function M:Refresh()
 	local nextTab = _G["ChatFrame" .. tab .. "Tab"]
 
 	while nextTab ~= nil do
-		nextTab:SetAlpha(tabAlpha)
-		nextTab.noMouseAlpha = tabAlpha
+		local hovered = _G["ChatFrame" .. tab] and _G["ChatFrame" .. tab].hasBeenFaded
+
+		StopTabFadeOut(nextTab)
+
+		if not fade then
+			nextTab:SetAlpha(RestingAlpha(nextTab))
+		elseif not hovered then
+			nextTab:SetAlpha(0)
+		end
 
 		tab = tab + 1
 		nextTab = _G["ChatFrame" .. tab .. "Tab"]
-	end
-
-	if fade then
-		-- show tabs instantly on mouseover
-		CHAT_TAB_SHOW_DELAY = 0
-	else
-		CHAT_TAB_SHOW_DELAY = 0.2
 	end
 end
 
@@ -108,13 +152,36 @@ function M:Init()
 	-- takes effect there and then. A hook installed once can't be taken back off.
 	if FCFTab_UpdateAlpha then
 		hooksecurefunc("FCFTab_UpdateAlpha", function(cf)
-			if not registry:IsEnabled(M.Key) then
+			-- the client has just set a hovered tab to the mouseover alpha, so leave it
+			if not registry:IsEnabled(M.Key) or cf.hasBeenFaded then
 				return
 			end
 
+			_G[cf:GetName() .. "Tab"]:SetAlpha(0)
+		end)
+	end
+
+	if FCF_FadeOutChatFrame then
+		-- the client eases the tab down to its resting alpha, so carry it the rest of the way
+		-- once that has landed
+		hooksecurefunc("FCF_FadeOutChatFrame", function(cf)
 			local chatTab = _G[cf:GetName() .. "Tab"]
-			chatTab.noMouseAlpha = 0
-			chatTab:SetAlpha(0)
+
+			StopTabFadeOut(chatTab)
+
+			chatTab.MiniFaderFadeOutTimer = C_Timer.NewTimer((CHAT_FRAME_FADE_OUT_TIME or 2) + 0.1, function()
+				chatTab.MiniFaderFadeOutTimer = nil
+
+				if registry:IsEnabled(M.Key) and not cf.hasBeenFaded then
+					FadeTabOut(cf, chatTab)
+				end
+			end)
+		end)
+	end
+
+	if FCF_FadeInChatFrame then
+		hooksecurefunc("FCF_FadeInChatFrame", function(cf)
+			StopTabFadeOut(_G[cf:GetName() .. "Tab"])
 		end)
 	end
 
