@@ -17,7 +17,10 @@ local function AnyHasFocus(group)
 	local stack = {}
 
 	for _, frame in ipairs(focusedFrames) do
-		stack[#stack + 1] = frame
+		-- a forbidden frame, such as the ping listener, refuses every call from an addon
+		if not frame:IsForbidden() then
+			stack[#stack + 1] = frame
+		end
 	end
 
 	local next = table.remove(stack)
@@ -33,7 +36,7 @@ local function AnyHasFocus(group)
 		-- so keep climbing rather than stopping at the first one
 		local parent = next:GetParent()
 
-		if parent and parent ~= UIParent then
+		if parent and parent ~= UIParent and not parent:IsForbidden() then
 			table.insert(stack, parent)
 		end
 

@@ -379,6 +379,61 @@ fw.describe("MiniFader - fading", function()
 		fw.eq(ChatFrame2Tab:GetAlpha(), 0.2, "second tab alpha after a client update")
 	end)
 
+	fw.it("ignores a forbidden frame under the mouse", function()
+		local context = LoginWith({})
+		local fader = context.Addon.Core.Fader
+
+		local target = CreateFrame("Frame", nil, UIParent)
+		target:EnableMouse(true)
+
+		fader:RegisterFade({
+			Target = target,
+			ShouldFade = function()
+				return true
+			end,
+		})
+
+		target:SetAlpha(1)
+		target:GetScript("OnLeave")(target)
+
+		-- the client's ping listener sits under the cursor and refuses every call from an addon
+		local forbidden = CreateFrame("Frame", nil, UIParent)
+		forbidden.IsForbidden = function()
+			return true
+		end
+		forbidden.GetParent = function()
+			error("Attempt to access forbidden object from code tainted by an AddOn")
+		end
+
+		WithGlobals({
+			GetMouseFoci = function()
+				return { forbidden }
+			end,
+		}, function()
+			WowMock.AdvanceTime(4)
+			WowMock.RunTimers()
+
+			fw.truthy(target.VuiFadeOut:IsPlaying(), "fade-out proceeded past the forbidden frame")
+		end)
+
+		-- the climb up from an ordinary frame can land on a forbidden parent too
+		local child = CreateFrame("Frame", nil, forbidden)
+
+		target:SetAlpha(1)
+		target:GetScript("OnLeave")(target)
+
+		WithGlobals({
+			GetMouseFoci = function()
+				return { child }
+			end,
+		}, function()
+			WowMock.AdvanceTime(4)
+			WowMock.RunTimers()
+
+			fw.truthy(target.VuiFadeOut:IsPlaying(), "fade-out proceeded past the forbidden parent")
+		end)
+	end)
+
 	fw.it("starts fading the chat tabs without a reload", function()
 		local context = LoginWith({ Chat = false })
 
