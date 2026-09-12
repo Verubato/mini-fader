@@ -13,7 +13,7 @@ player frame only while out of combat and outside instances.
 
 | Item | Value |
 |---|---|
-| Version | 1.9.0 |
+| Version | 1.9.1 |
 | Interface versions (.toc) | 120100 (retail only: Midnight 12.1) |
 | Saved variables | MiniFaderDB, account wide (settings shared across characters) |
 | Slash commands | /fade, /minifade, /minifader, /mfade, /mfader (all open the settings panel) |
@@ -78,8 +78,10 @@ and "Possess bar". Tooltip is "Fade <label in lower case> while out of combat."
   background, replacing the background with a subtle black one (25% alpha) that appears on
   hover over the chat frame. The chat side buttons and the social/Quick Join toast button
   fade with it. Tabs are faded rather than hidden, so they stay clickable, and every tab's
-  alpha is put back when the setting is turned off. Applies to all chat windows/tabs, and
-  toggling it takes effect without a reload.
+  alpha is put back when the setting is turned off. Tabs come back after Blizzard's own short
+  mouseover delay (about 0.2s with the mouse still) rather than instantly, and the addon
+  leaves Blizzard's tab fade alone so it doesn't taint it (since 1.9.1). Applies to all chat
+  windows/tabs, and toggling it takes effect without a reload.
 - Micro menu: fades the whole menu and includes a fix for Blizzard's hover animation that
   could otherwise leave icons invisible after fast mouse movements (fixed in 1.5.0).
 - Objective tracker and XP bars have mouse interactivity enabled by the addon so hover
