@@ -27,7 +27,7 @@ function M:Register()
 	fader:RegisterFade({
 		Target = target,
 		ShouldFade = function()
-			return registry:IsEnabled(M.Key) and not InCombatLockdown() and not IsInInstance()
+			return registry:IsEnabled(M.Key) and not fader:InCombat() and not IsInInstance()
 		end,
 		Events = combatAndZoneEvents,
 	})

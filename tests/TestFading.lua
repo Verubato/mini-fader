@@ -64,8 +64,9 @@ local function FindCheckbox(panel, labelText)
 end
 
 local function EnterCombat()
-	WowMock.State.InCombat = true
+	-- the client's lockdown only starts after the event has been handled
 	WowMock.FireEvent("PLAYER_REGEN_DISABLED")
+	WowMock.State.InCombat = true
 end
 
 local function LeaveCombat()

@@ -88,7 +88,7 @@ function M:Register()
 				-- holds them a level further down, so go two deep rather than one
 				IncludeChildren = 2,
 				ShouldFade = function()
-					return registry:Vars().Options.ActionBars[id] and not InCombatLockdown()
+					return registry:Vars().Options.ActionBars[id] and not fader:InCombat()
 				end,
 				Events = combatAndZoneEvents,
 			})

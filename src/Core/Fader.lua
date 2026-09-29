@@ -5,6 +5,7 @@ local fadeInDuration = 0.5
 local fadeOutDuration = 1
 local defaultTimeUntilFadeOut = 3
 local targets = {}
+local inCombat = InCombatLockdown() == true
 
 ---@class Fader
 local M = {}
@@ -276,10 +277,26 @@ local function FindGroup(groupTargets)
 	return nil
 end
 
-local function OnEvent()
+local function OnEvent(_, event)
+	-- InCombatLockdown() still reads false while PLAYER_REGEN_DISABLED is being handled,
+	-- so combat state comes from the events and the client is only asked on a loading screen
+	if event == "PLAYER_REGEN_DISABLED" then
+		inCombat = true
+	elseif event == "PLAYER_REGEN_ENABLED" then
+		inCombat = false
+	elseif event == "PLAYER_ENTERING_WORLD" then
+		inCombat = InCombatLockdown() == true
+	end
+
 	-- the game changed under the player rather than the player asking for it,
 	-- so ease the frames away instead of snapping them out of existence
 	M:Refresh(true)
+end
+
+---Whether the player is in combat, as of the latest combat event.
+---@return boolean
+function M:InCombat()
+	return inCombat
 end
 
 ---Refreshes the fading state by rechecking the ShouldFade of each frame.
@@ -359,6 +376,9 @@ end
 
 eventsFrame = CreateFrame("Frame")
 eventsFrame:SetScript("OnEvent", OnEvent)
+eventsFrame:RegisterEvent("PLAYER_REGEN_DISABLED")
+eventsFrame:RegisterEvent("PLAYER_REGEN_ENABLED")
+eventsFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
 
 ---@class FadeOptions
 ---@field Target table the target frame to fade
