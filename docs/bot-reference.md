@@ -13,7 +13,7 @@ player frame only while out of combat and outside instances.
 
 | Item | Value |
 |---|---|
-| Version | 1.9.2 |
+| Version | 1.9.3 |
 | Interface versions (.toc) | 120100, 16001 (retail Midnight 12.1 and Classic Beta 1.60) |
 | Saved variables | MiniFaderDB, account wide (settings shared across characters) |
 | Slash commands | /fade, /minifade, /minifader, /mfade, /mfader (all open the settings panel) |
@@ -112,6 +112,8 @@ and "Possess bar". Tooltip is "Fade <label in lower case> while out of combat."
   they come back in combat or on mouseover. Untick it to stop.
 - "The action bars don't fade in combat": intentional; the action bars only fade out of
   combat.
+- "My action bars only come back on mouseover once combat starts": fixed in 1.9.3; update
+  the addon if on an older version.
 - "The player frame doesn't fade in a dungeon/raid/battleground": intentional; the player
   frame only fades out of combat and outside instances.
 - "A frame isn't fading at all": confirm its checkbox is on in /fade; the addon only hooks
@@ -122,6 +124,7 @@ and "Possess bar". Tooltip is "Fade <label in lower case> while out of combat."
 - "Micro menu icons are invisible after mousing over quickly": fixed in 1.5.0; update the
   addon if on an older version.
 - "Settings are the same on all my characters": yes, settings are account wide.
-- "Does it work on Classic?": no; the .toc lists retail 12.1 only.
+- "Does it work on Classic?": only WoW Forever; the .toc lists retail 12.1 and Classic Beta
+  1.60.
 - "Can I change the fade delay or speed?": no options for that; timings are fixed
   (0.5s in, 1s out, 3s delay, 2s for chat).

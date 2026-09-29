@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.9.3
+
+Fixed faded action bars and the player frame not coming back when combat starts.
+
 ## 1.9.2
 
 Added WoW Forever support.
